@@ -1,0 +1,8 @@
+# Build context deliberately excludes private material, SSH files and .env.
+**
+!deployment/
+!deployment/Dockerfile
+!deployment/control.py
+!monitoring/
+!monitoring/dashboards/
+!monitoring/dashboards/lido-validator-fleet.json

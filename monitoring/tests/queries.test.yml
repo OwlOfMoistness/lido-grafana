@@ -1,0 +1,702 @@
+{
+  "rule_files": [],
+  "evaluation_interval": "1m",
+  "tests": [
+    {
+      "name": "All reporting clients contribute to loaded count",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "up{job=\"validator\",instance=\"v1\",host=\"validator-1\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "validators{job=\"validator\",instance=\"v1\",host=\"validator-1\"}",
+          "values": "100+0x10"
+        },
+        {
+          "series": "up{job=\"validator\",instance=\"v2\",host=\"validator-2\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "validators{job=\"validator\",instance=\"v2\",host=\"validator-2\"}",
+          "values": "200+0x10"
+        },
+        {
+          "series": "up{job=\"validator\",instance=\"v3\",host=\"validator-3\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "validators{job=\"validator\",instance=\"v3\",host=\"validator-3\"}",
+          "values": "300+0x10"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "sum((validators{job=\"validator\",host=~\"validator-1|validator-2|validator-3\"} and on(job, instance) (up{job=\"validator\",host=~\"validator-1|validator-2|validator-3\"} == 1))) and on() (count((validators{job=\"validator\",host=~\"validator-1|validator-2|validator-3\"} and on(job, instance) (up{job=\"validator\",host=~\"validator-1|validator-2|validator-3\"} == 1))) == count(up{job=\"validator\",host=~\"validator-1|validator-2|validator-3\"}))",
+          "eval_time": "10m",
+          "exp_samples": [
+            {
+              "labels": "{}",
+              "value": 600
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "An offline client suppresses the fleet count rather than reporting a partial total",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "up{job=\"validator\",instance=\"v1\",host=\"validator-1\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "validators{job=\"validator\",instance=\"v1\",host=\"validator-1\"}",
+          "values": "100+0x10"
+        },
+        {
+          "series": "up{job=\"validator\",instance=\"v2\",host=\"validator-2\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "validators{job=\"validator\",instance=\"v2\",host=\"validator-2\"}",
+          "values": "200+0x10"
+        },
+        {
+          "series": "up{job=\"validator\",instance=\"v3\",host=\"validator-3\"}",
+          "values": "0+0x10"
+        },
+        {
+          "series": "validators{job=\"validator\",instance=\"v3\",host=\"validator-3\"}",
+          "values": "300+0x10"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "sum((validators{job=\"validator\",host=~\"validator-1|validator-2|validator-3\"} and on(job, instance) (up{job=\"validator\",host=~\"validator-1|validator-2|validator-3\"} == 1))) and on() (count((validators{job=\"validator\",host=~\"validator-1|validator-2|validator-3\"} and on(job, instance) (up{job=\"validator\",host=~\"validator-1|validator-2|validator-3\"} == 1))) == count(up{job=\"validator\",host=~\"validator-1|validator-2|validator-3\"}))",
+          "eval_time": "10m",
+          "exp_samples": []
+        }
+      ]
+    },
+    {
+      "name": "A missing gauge suppresses the fleet count even if all scrape endpoints are reachable",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "up{job=\"validator\",instance=\"v1\",host=\"validator-1\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "validators{job=\"validator\",instance=\"v1\",host=\"validator-1\"}",
+          "values": "100+0x10"
+        },
+        {
+          "series": "up{job=\"validator\",instance=\"v2\",host=\"validator-2\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "validators{job=\"validator\",instance=\"v2\",host=\"validator-2\"}",
+          "values": "200+0x10"
+        },
+        {
+          "series": "up{job=\"validator\",instance=\"v3\",host=\"validator-3\"}",
+          "values": "1+0x10"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "sum((validators{job=\"validator\",host=~\"validator-1|validator-2|validator-3\"} and on(job, instance) (up{job=\"validator\",host=~\"validator-1|validator-2|validator-3\"} == 1))) and on() (count((validators{job=\"validator\",host=~\"validator-1|validator-2|validator-3\"} and on(job, instance) (up{job=\"validator\",host=~\"validator-1|validator-2|validator-3\"} == 1))) == count(up{job=\"validator\",host=~\"validator-1|validator-2|validator-3\"}))",
+          "eval_time": "10m",
+          "exp_samples": []
+        }
+      ]
+    },
+    {
+      "name": "Restart-aware duty count excludes shared beacon-node submissions",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "beacon_attestations_sent_total{job=\"validator\",instance=\"v1\",host=\"validator-1\"}",
+          "values": "0 10 20 30 40 10 20 30 40 50 60"
+        },
+        {
+          "series": "beacon_attestations_sent_total{job=\"eth2\",instance=\"main\",host=\"main\"}",
+          "values": "0+999x10"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "sum(increase(beacon_attestations_sent_total{job=\"validator\",host=~\"validator-1|validator-2|validator-3\"}[10m]))",
+          "eval_time": "10m",
+          "exp_samples": [
+            {
+              "labels": "{}",
+              "value": 100
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Missing duty metric remains absent rather than becoming zero",
+      "interval": "1m",
+      "input_series": [],
+      "promql_expr_test": [
+        {
+          "expr": "sum(increase(beacon_attestations_sent_total{job=\"validator\",host=~\"validator-1|validator-2|validator-3\"}[10m]))",
+          "eval_time": "10m",
+          "exp_samples": []
+        }
+      ]
+    },
+    {
+      "name": "Main accuracy is not blended with fallback observations",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "validator_monitor_prev_epoch_on_chain_source_attester_hit_total{job=\"eth2\",instance=\"main\",host=\"main\",validator=\"total\"}",
+          "values": "0+9x60"
+        },
+        {
+          "series": "validator_monitor_prev_epoch_on_chain_source_attester_miss_total{job=\"eth2\",instance=\"main\",host=\"main\",validator=\"total\"}",
+          "values": "0+1x60"
+        },
+        {
+          "series": "up{job=\"eth2\",instance=\"main\",host=\"main\"}",
+          "values": "1+0x60"
+        },
+        {
+          "series": "validator_monitor_prev_epoch_on_chain_source_attester_hit_total{job=\"eth2\",instance=\"fallback\",host=\"fallback\",validator=\"total\"}",
+          "values": "0+1x60"
+        },
+        {
+          "series": "validator_monitor_prev_epoch_on_chain_source_attester_miss_total{job=\"eth2\",instance=\"fallback\",host=\"fallback\",validator=\"total\"}",
+          "values": "0+9x60"
+        },
+        {
+          "series": "up{job=\"eth2\",instance=\"fallback\",host=\"fallback\"}",
+          "values": "1+0x60"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "(sum(increase(validator_monitor_prev_epoch_on_chain_source_attester_hit_total{job=\"eth2\",host=~\"main\",validator=\"total\"}[1h])) / (sum(increase(validator_monitor_prev_epoch_on_chain_source_attester_hit_total{job=\"eth2\",host=~\"main\",validator=\"total\"}[1h])) + sum(increase(validator_monitor_prev_epoch_on_chain_source_attester_miss_total{job=\"eth2\",host=~\"main\",validator=\"total\"}[1h])))) and on() ((sum(increase(validator_monitor_prev_epoch_on_chain_source_attester_hit_total{job=\"eth2\",host=~\"main\",validator=\"total\"}[1h])) + sum(increase(validator_monitor_prev_epoch_on_chain_source_attester_miss_total{job=\"eth2\",host=~\"main\",validator=\"total\"}[1h]))) > 0) and on() (min(up{job=\"eth2\",host=~\"main\"}) == 1)",
+          "eval_time": "1h",
+          "exp_samples": [
+            {
+              "labels": "{}",
+              "value": 0.9
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "No attestation opportunities is no data, not perfect accuracy or NaN",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "validator_monitor_prev_epoch_on_chain_source_attester_hit_total{job=\"eth2\",instance=\"main\",host=\"main\",validator=\"total\"}",
+          "values": "0+0x60"
+        },
+        {
+          "series": "validator_monitor_prev_epoch_on_chain_source_attester_miss_total{job=\"eth2\",instance=\"main\",host=\"main\",validator=\"total\"}",
+          "values": "0+0x60"
+        },
+        {
+          "series": "up{job=\"eth2\",instance=\"main\",host=\"main\"}",
+          "values": "1+0x60"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "(sum(increase(validator_monitor_prev_epoch_on_chain_source_attester_hit_total{job=\"eth2\",host=~\"main\",validator=\"total\"}[1h])) / (sum(increase(validator_monitor_prev_epoch_on_chain_source_attester_hit_total{job=\"eth2\",host=~\"main\",validator=\"total\"}[1h])) + sum(increase(validator_monitor_prev_epoch_on_chain_source_attester_miss_total{job=\"eth2\",host=~\"main\",validator=\"total\"}[1h])))) and on() ((sum(increase(validator_monitor_prev_epoch_on_chain_source_attester_hit_total{job=\"eth2\",host=~\"main\",validator=\"total\"}[1h])) + sum(increase(validator_monitor_prev_epoch_on_chain_source_attester_miss_total{job=\"eth2\",host=~\"main\",validator=\"total\"}[1h]))) > 0) and on() (min(up{job=\"eth2\",host=~\"main\"}) == 1)",
+          "eval_time": "1h",
+          "exp_samples": []
+        }
+      ]
+    },
+    {
+      "name": "Summary table keeps per-instance activity separate through a restart",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "beacon_attestations_sent_total{job=\"validator\",instance=\"v1\",host=\"validator-1\"}",
+          "values": "0 10 20 30 40 10 20 30 40 50 60"
+        },
+        {
+          "series": "beacon_attestations_sent_total{job=\"eth2\",instance=\"main\",host=\"main\"}",
+          "values": "0+999x10"
+        },
+        {
+          "series": "beacon_attestations_sent_total{job=\"validator\",instance=\"v2\",host=\"validator-2\"}",
+          "values": "0+20x10"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "sum by(host) (increase(beacon_attestations_sent_total{job=\"validator\",host=~\"validator-1|validator-2|validator-3\"}[10m]))",
+          "eval_time": "10m",
+          "exp_samples": [
+            {
+              "labels": "{host=\"validator-1\"}",
+              "value": 100
+            },
+            {
+              "labels": "{host=\"validator-2\"}",
+              "value": 200
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Summary table accuracy keeps main and fallback independent",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "validator_monitor_prev_epoch_on_chain_head_attester_hit_total{job=\"eth2\",instance=\"main\",host=\"main\",validator=\"total\"}",
+          "values": "0+9x60"
+        },
+        {
+          "series": "validator_monitor_prev_epoch_on_chain_head_attester_miss_total{job=\"eth2\",instance=\"main\",host=\"main\",validator=\"total\"}",
+          "values": "0+1x60"
+        },
+        {
+          "series": "up{job=\"eth2\",instance=\"main\",host=\"main\"}",
+          "values": "1+0x60"
+        },
+        {
+          "series": "validator_monitor_prev_epoch_on_chain_head_attester_hit_total{job=\"eth2\",instance=\"fallback\",host=\"fallback\",validator=\"total\"}",
+          "values": "0+1x60"
+        },
+        {
+          "series": "validator_monitor_prev_epoch_on_chain_head_attester_miss_total{job=\"eth2\",instance=\"fallback\",host=\"fallback\",validator=\"total\"}",
+          "values": "0+9x60"
+        },
+        {
+          "series": "up{job=\"eth2\",instance=\"fallback\",host=\"fallback\"}",
+          "values": "1+0x60"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "(sum by(host) (increase(validator_monitor_prev_epoch_on_chain_head_attester_hit_total{job=\"eth2\",host=~\"main|fallback\",validator=\"total\"}[1h])) / (sum by(host) (increase(validator_monitor_prev_epoch_on_chain_head_attester_hit_total{job=\"eth2\",host=~\"main|fallback\",validator=\"total\"}[1h])) + sum by(host) (increase(validator_monitor_prev_epoch_on_chain_head_attester_miss_total{job=\"eth2\",host=~\"main|fallback\",validator=\"total\"}[1h])))) and on(host) ((sum by(host) (increase(validator_monitor_prev_epoch_on_chain_head_attester_hit_total{job=\"eth2\",host=~\"main|fallback\",validator=\"total\"}[1h])) + sum by(host) (increase(validator_monitor_prev_epoch_on_chain_head_attester_miss_total{job=\"eth2\",host=~\"main|fallback\",validator=\"total\"}[1h]))) > 0) and on(host) (min by(host) (up{job=\"eth2\",host=~\"main|fallback\"}) == 1)",
+          "eval_time": "1h",
+          "exp_samples": [
+            {
+              "labels": "{host=\"main\"}",
+              "value": 0.9
+            },
+            {
+              "labels": "{host=\"fallback\"}",
+              "value": 0.1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Summary table excludes offline backend accuracy without suppressing healthy backend",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "validator_monitor_prev_epoch_on_chain_head_attester_hit_total{job=\"eth2\",instance=\"main\",host=\"main\",validator=\"total\"}",
+          "values": "0+9x60"
+        },
+        {
+          "series": "validator_monitor_prev_epoch_on_chain_head_attester_miss_total{job=\"eth2\",instance=\"main\",host=\"main\",validator=\"total\"}",
+          "values": "0+1x60"
+        },
+        {
+          "series": "up{job=\"eth2\",instance=\"main\",host=\"main\"}",
+          "values": "1+0x60"
+        },
+        {
+          "series": "validator_monitor_prev_epoch_on_chain_head_attester_hit_total{job=\"eth2\",instance=\"fallback\",host=\"fallback\",validator=\"total\"}",
+          "values": "0+1x60"
+        },
+        {
+          "series": "validator_monitor_prev_epoch_on_chain_head_attester_miss_total{job=\"eth2\",instance=\"fallback\",host=\"fallback\",validator=\"total\"}",
+          "values": "0+9x60"
+        },
+        {
+          "series": "up{job=\"eth2\",instance=\"fallback\",host=\"fallback\"}",
+          "values": "0+0x60"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "(sum by(host) (increase(validator_monitor_prev_epoch_on_chain_head_attester_hit_total{job=\"eth2\",host=~\"main|fallback\",validator=\"total\"}[1h])) / (sum by(host) (increase(validator_monitor_prev_epoch_on_chain_head_attester_hit_total{job=\"eth2\",host=~\"main|fallback\",validator=\"total\"}[1h])) + sum by(host) (increase(validator_monitor_prev_epoch_on_chain_head_attester_miss_total{job=\"eth2\",host=~\"main|fallback\",validator=\"total\"}[1h])))) and on(host) ((sum by(host) (increase(validator_monitor_prev_epoch_on_chain_head_attester_hit_total{job=\"eth2\",host=~\"main|fallback\",validator=\"total\"}[1h])) + sum by(host) (increase(validator_monitor_prev_epoch_on_chain_head_attester_miss_total{job=\"eth2\",host=~\"main|fallback\",validator=\"total\"}[1h]))) > 0) and on(host) (min by(host) (up{job=\"eth2\",host=~\"main|fallback\"}) == 1)",
+          "eval_time": "1h",
+          "exp_samples": [
+            {
+              "labels": "{host=\"main\"}",
+              "value": 0.9
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Rocket Pool activity scale is per 45 seconds and preserves counter resets",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "beacon_attestations_sent_total{job=\"validator\",instance=\"v1\",host=\"validator-1\"}",
+          "values": "0 10 20 30 40 10 20 30 40 50 60"
+        },
+        {
+          "series": "beacon_attestations_sent_total{job=\"eth2\",instance=\"main\",host=\"main\"}",
+          "values": "0+999x10"
+        },
+        {
+          "series": "beacon_attestations_sent_total{job=\"validator\",instance=\"v2\",host=\"validator-2\"}",
+          "values": "0+20x10"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "round((sum by(host)(rate(beacon_attestations_sent_total{job=\"validator\",host=~\"validator-1|validator-2|validator-3\"}[10m])) * 45), 0.000001)",
+          "eval_time": "10m",
+          "exp_samples": [
+            {
+              "labels": "{host=\"validator-1\"}",
+              "value": 7.5
+            },
+            {
+              "labels": "{host=\"validator-2\"}",
+              "value": 15
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Overview accuracy keeps source target and head separate for each backend",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "validator_monitor_prev_epoch_on_chain_source_attester_hit_total{job=\"eth2\",instance=\"main\",host=\"main\",validator=\"total\"}",
+          "values": "0+9x60"
+        },
+        {
+          "series": "validator_monitor_prev_epoch_on_chain_source_attester_miss_total{job=\"eth2\",instance=\"main\",host=\"main\",validator=\"total\"}",
+          "values": "0+1x60"
+        },
+        {
+          "series": "validator_monitor_prev_epoch_on_chain_source_attester_hit_total{job=\"eth2\",instance=\"fallback\",host=\"fallback\",validator=\"total\"}",
+          "values": "0+1x60"
+        },
+        {
+          "series": "validator_monitor_prev_epoch_on_chain_source_attester_miss_total{job=\"eth2\",instance=\"fallback\",host=\"fallback\",validator=\"total\"}",
+          "values": "0+9x60"
+        },
+        {
+          "series": "validator_monitor_prev_epoch_on_chain_target_attester_hit_total{job=\"eth2\",instance=\"main\",host=\"main\",validator=\"total\"}",
+          "values": "0+9x60"
+        },
+        {
+          "series": "validator_monitor_prev_epoch_on_chain_target_attester_miss_total{job=\"eth2\",instance=\"main\",host=\"main\",validator=\"total\"}",
+          "values": "0+1x60"
+        },
+        {
+          "series": "validator_monitor_prev_epoch_on_chain_target_attester_hit_total{job=\"eth2\",instance=\"fallback\",host=\"fallback\",validator=\"total\"}",
+          "values": "0+1x60"
+        },
+        {
+          "series": "validator_monitor_prev_epoch_on_chain_target_attester_miss_total{job=\"eth2\",instance=\"fallback\",host=\"fallback\",validator=\"total\"}",
+          "values": "0+9x60"
+        },
+        {
+          "series": "validator_monitor_prev_epoch_on_chain_head_attester_hit_total{job=\"eth2\",instance=\"main\",host=\"main\",validator=\"total\"}",
+          "values": "0+9x60"
+        },
+        {
+          "series": "validator_monitor_prev_epoch_on_chain_head_attester_miss_total{job=\"eth2\",instance=\"main\",host=\"main\",validator=\"total\"}",
+          "values": "0+1x60"
+        },
+        {
+          "series": "up{job=\"eth2\",instance=\"main\",host=\"main\"}",
+          "values": "1+0x60"
+        },
+        {
+          "series": "validator_monitor_prev_epoch_on_chain_head_attester_hit_total{job=\"eth2\",instance=\"fallback\",host=\"fallback\",validator=\"total\"}",
+          "values": "0+1x60"
+        },
+        {
+          "series": "validator_monitor_prev_epoch_on_chain_head_attester_miss_total{job=\"eth2\",instance=\"fallback\",host=\"fallback\",validator=\"total\"}",
+          "values": "0+9x60"
+        },
+        {
+          "series": "up{job=\"eth2\",instance=\"fallback\",host=\"fallback\"}",
+          "values": "1+0x60"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "(sum by(host) (increase(validator_monitor_prev_epoch_on_chain_source_attester_hit_total{job=\"eth2\",host=~\"main|fallback\",validator=\"total\"}[1h])) / (sum by(host) (increase(validator_monitor_prev_epoch_on_chain_source_attester_hit_total{job=\"eth2\",host=~\"main|fallback\",validator=\"total\"}[1h])) + sum by(host) (increase(validator_monitor_prev_epoch_on_chain_source_attester_miss_total{job=\"eth2\",host=~\"main|fallback\",validator=\"total\"}[1h])))) and on(host) ((sum by(host) (increase(validator_monitor_prev_epoch_on_chain_source_attester_hit_total{job=\"eth2\",host=~\"main|fallback\",validator=\"total\"}[1h])) + sum by(host) (increase(validator_monitor_prev_epoch_on_chain_source_attester_miss_total{job=\"eth2\",host=~\"main|fallback\",validator=\"total\"}[1h]))) > 0) and on(host) (min by(host) (up{job=\"eth2\",host=~\"main|fallback\"}) == 1)",
+          "eval_time": "1h",
+          "exp_samples": [
+            {
+              "labels": "{host=\"main\"}",
+              "value": 0.9
+            },
+            {
+              "labels": "{host=\"fallback\"}",
+              "value": 0.1
+            }
+          ]
+        },
+        {
+          "expr": "(sum by(host) (increase(validator_monitor_prev_epoch_on_chain_target_attester_hit_total{job=\"eth2\",host=~\"main|fallback\",validator=\"total\"}[1h])) / (sum by(host) (increase(validator_monitor_prev_epoch_on_chain_target_attester_hit_total{job=\"eth2\",host=~\"main|fallback\",validator=\"total\"}[1h])) + sum by(host) (increase(validator_monitor_prev_epoch_on_chain_target_attester_miss_total{job=\"eth2\",host=~\"main|fallback\",validator=\"total\"}[1h])))) and on(host) ((sum by(host) (increase(validator_monitor_prev_epoch_on_chain_target_attester_hit_total{job=\"eth2\",host=~\"main|fallback\",validator=\"total\"}[1h])) + sum by(host) (increase(validator_monitor_prev_epoch_on_chain_target_attester_miss_total{job=\"eth2\",host=~\"main|fallback\",validator=\"total\"}[1h]))) > 0) and on(host) (min by(host) (up{job=\"eth2\",host=~\"main|fallback\"}) == 1)",
+          "eval_time": "1h",
+          "exp_samples": [
+            {
+              "labels": "{host=\"main\"}",
+              "value": 0.9
+            },
+            {
+              "labels": "{host=\"fallback\"}",
+              "value": 0.1
+            }
+          ]
+        },
+        {
+          "expr": "(sum by(host) (increase(validator_monitor_prev_epoch_on_chain_head_attester_hit_total{job=\"eth2\",host=~\"main|fallback\",validator=\"total\"}[1h])) / (sum by(host) (increase(validator_monitor_prev_epoch_on_chain_head_attester_hit_total{job=\"eth2\",host=~\"main|fallback\",validator=\"total\"}[1h])) + sum by(host) (increase(validator_monitor_prev_epoch_on_chain_head_attester_miss_total{job=\"eth2\",host=~\"main|fallback\",validator=\"total\"}[1h])))) and on(host) ((sum by(host) (increase(validator_monitor_prev_epoch_on_chain_head_attester_hit_total{job=\"eth2\",host=~\"main|fallback\",validator=\"total\"}[1h])) + sum by(host) (increase(validator_monitor_prev_epoch_on_chain_head_attester_miss_total{job=\"eth2\",host=~\"main|fallback\",validator=\"total\"}[1h]))) > 0) and on(host) (min by(host) (up{job=\"eth2\",host=~\"main|fallback\"}) == 1)",
+          "eval_time": "1h",
+          "exp_samples": [
+            {
+              "labels": "{host=\"main\"}",
+              "value": 0.9
+            },
+            {
+              "labels": "{host=\"fallback\"}",
+              "value": 0.1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Storage includes root and data mounts but excludes temporary zero-size and offline filesystems",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "up{job=\"node\",instance=\"n1\",host=\"main\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "up{job=\"node\",instance=\"n2\",host=\"fallback\"}",
+          "values": "0+0x10"
+        },
+        {
+          "series": "node_filesystem_size_bytes{job=\"node\",instance=\"n1\",host=\"main\",device=\"/dev/vda1\",mountpoint=\"/\",fstype=\"ext4\"}",
+          "values": "1000+0x10"
+        },
+        {
+          "series": "node_filesystem_avail_bytes{job=\"node\",instance=\"n1\",host=\"main\",device=\"/dev/vda1\",mountpoint=\"/\",fstype=\"ext4\"}",
+          "values": "600+0x10"
+        },
+        {
+          "series": "node_filesystem_size_bytes{job=\"node\",instance=\"n1\",host=\"main\",device=\"/dev/vdb\",mountpoint=\"/data\",fstype=\"xfs\"}",
+          "values": "2000+0x10"
+        },
+        {
+          "series": "node_filesystem_avail_bytes{job=\"node\",instance=\"n1\",host=\"main\",device=\"/dev/vdb\",mountpoint=\"/data\",fstype=\"xfs\"}",
+          "values": "500+0x10"
+        },
+        {
+          "series": "node_filesystem_size_bytes{job=\"node\",instance=\"n1\",host=\"main\",device=\"tmpfs\",mountpoint=\"/run\",fstype=\"tmpfs\"}",
+          "values": "100+0x10"
+        },
+        {
+          "series": "node_filesystem_avail_bytes{job=\"node\",instance=\"n1\",host=\"main\",device=\"tmpfs\",mountpoint=\"/run\",fstype=\"tmpfs\"}",
+          "values": "10+0x10"
+        },
+        {
+          "series": "node_filesystem_size_bytes{job=\"node\",instance=\"n1\",host=\"main\",device=\"zero\",mountpoint=\"/empty\",fstype=\"ext4\"}",
+          "values": "0+0x10"
+        },
+        {
+          "series": "node_filesystem_avail_bytes{job=\"node\",instance=\"n1\",host=\"main\",device=\"zero\",mountpoint=\"/empty\",fstype=\"ext4\"}",
+          "values": "0+0x10"
+        },
+        {
+          "series": "node_filesystem_size_bytes{job=\"node\",instance=\"n2\",host=\"fallback\",device=\"/dev/vda1\",mountpoint=\"/\",fstype=\"ext4\"}",
+          "values": "1000+0x10"
+        },
+        {
+          "series": "node_filesystem_avail_bytes{job=\"node\",instance=\"n2\",host=\"fallback\",device=\"/dev/vda1\",mountpoint=\"/\",fstype=\"ext4\"}",
+          "values": "600+0x10"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "((1 - node_filesystem_avail_bytes{job=\"node\",host=~\"validator-1|validator-2|validator-3|main|fallback\",fstype!~\"tmpfs|devtmpfs|overlay|squashfs|nsfs|tracefs\"} / node_filesystem_size_bytes{job=\"node\",host=~\"validator-1|validator-2|validator-3|main|fallback\",fstype!~\"tmpfs|devtmpfs|overlay|squashfs|nsfs|tracefs\"}) and on(job,instance) (up{job=\"node\",host=~\"validator-1|validator-2|validator-3|main|fallback\"} == 1)) and (node_filesystem_size_bytes{job=\"node\",host=~\"validator-1|validator-2|validator-3|main|fallback\",fstype!~\"tmpfs|devtmpfs|overlay|squashfs|nsfs|tracefs\"} > 0)",
+          "eval_time": "10m",
+          "exp_samples": [
+            {
+              "labels": "{job=\"node\",instance=\"n1\",host=\"main\",device=\"/dev/vda1\",mountpoint=\"/\",fstype=\"ext4\"}",
+              "value": 0.4
+            },
+            {
+              "labels": "{job=\"node\",instance=\"n1\",host=\"main\",device=\"/dev/vdb\",mountpoint=\"/data\",fstype=\"xfs\"}",
+              "value": 0.75
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Proposal chart displays whole counts for zero one and reset counters",
+      "interval": "30s",
+      "input_series": [
+        {
+          "series": "beacon_blocks_sent_total{job=\"validator\",host=\"validator-1\",instance=\"v1\"}",
+          "values": "10 10 10 11 11 11 11 11 11 11 11"
+        },
+        {
+          "series": "beacon_blocks_sent_total{job=\"validator\",host=\"validator-2\",instance=\"v2\"}",
+          "values": "10 10 11 11 0 0 1 1 1 1 1"
+        },
+        {
+          "series": "beacon_blocks_sent_total{job=\"validator\",host=\"validator-3\",instance=\"v3\"}",
+          "values": "0+0x10"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "round(sum by(host)(increase(beacon_blocks_sent_total{job=\"validator\",host=~\"validator-1|validator-2|validator-3\"}[5m])))",
+          "eval_time": "5m",
+          "exp_samples": [
+            {
+              "labels": "{host=\"validator-1\"}",
+              "value": 1
+            },
+            {
+              "labels": "{host=\"validator-2\"}",
+              "value": 2
+            },
+            {
+              "labels": "{host=\"validator-3\"}",
+              "value": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Missing proposal counter is not shown as zero proposals",
+      "interval": "30s",
+      "input_series": [],
+      "promql_expr_test": [
+        {
+          "expr": "round(sum by(host)(increase(beacon_blocks_sent_total{job=\"validator\",host=~\"validator-1|validator-2|validator-3\"}[5m])))",
+          "eval_time": "5m",
+          "exp_samples": []
+        }
+      ]
+    },
+    {
+      "name": "Mixed execution clients select one metric per target and hide stale values when down",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "up{job=\"eth1\",instance=\"n\",host=\"main\"}",
+          "values": "1 1 0"
+        },
+        {
+          "series": "ethereum_peer_count{job=\"eth1\",instance=\"n\",host=\"main\"}",
+          "values": "50+0x2"
+        },
+        {
+          "series": "p2p_peers{job=\"eth1\",instance=\"n\",host=\"main\"}",
+          "values": "999+0x2"
+        },
+        {
+          "series": "nethermind_blockchain_height{job=\"eth1\",instance=\"n\",host=\"main\"}",
+          "values": "26054634+0x2"
+        },
+        {
+          "series": "chain_head_block{job=\"eth1\",instance=\"n\",host=\"main\"}",
+          "values": "999+0x2"
+        },
+        {
+          "series": "up{job=\"eth1\",instance=\"g\",host=\"fallback\"}",
+          "values": "1 1 0"
+        },
+        {
+          "series": "p2p_peers{job=\"eth1\",instance=\"g\",host=\"fallback\"}",
+          "values": "49+0x2"
+        },
+        {
+          "series": "chain_head_block{job=\"eth1\",instance=\"g\",host=\"fallback\"}",
+          "values": "26054633+0x2"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "max by(host) (((ethereum_peer_count{job=\"eth1\",host=~\"main|fallback\"} or on(job, instance) p2p_peers{job=\"eth1\",host=~\"main|fallback\"}) and on(job, instance) (up{job=\"eth1\",host=~\"main|fallback\"} == 1)))",
+          "eval_time": "1m",
+          "exp_samples": [
+            {
+              "labels": "{host=\"main\"}",
+              "value": 50
+            },
+            {
+              "labels": "{host=\"fallback\"}",
+              "value": 49
+            }
+          ]
+        },
+        {
+          "expr": "max by(host) (((ethereum_peer_count{job=\"eth1\",host=~\"main|fallback\"} or on(job, instance) p2p_peers{job=\"eth1\",host=~\"main|fallback\"}) and on(job, instance) (up{job=\"eth1\",host=~\"main|fallback\"} == 1)))",
+          "eval_time": "2m",
+          "exp_samples": []
+        },
+        {
+          "expr": "((ethereum_peer_count{job=\"eth1\",host=~\"main|fallback\"} or on(job, instance) p2p_peers{job=\"eth1\",host=~\"main|fallback\"}) and on(job, instance) (up{job=\"eth1\",host=~\"main|fallback\"} == 1))",
+          "eval_time": "1m",
+          "exp_samples": [
+            {
+              "labels": "ethereum_peer_count{host=\"main\",instance=\"n\",job=\"eth1\"}",
+              "value": 50
+            },
+            {
+              "labels": "p2p_peers{host=\"fallback\",instance=\"g\",job=\"eth1\"}",
+              "value": 49
+            }
+          ]
+        },
+        {
+          "expr": "((ethereum_peer_count{job=\"eth1\",host=~\"main|fallback\"} or on(job, instance) p2p_peers{job=\"eth1\",host=~\"main|fallback\"}) and on(job, instance) (up{job=\"eth1\",host=~\"main|fallback\"} == 1))",
+          "eval_time": "2m",
+          "exp_samples": []
+        },
+        {
+          "expr": "((nethermind_blockchain_height{job=\"eth1\",host=~\"main|fallback\"} or on(job, instance) chain_head_block{job=\"eth1\",host=~\"main|fallback\"}) and on(job, instance) (up{job=\"eth1\",host=~\"main|fallback\"} == 1))",
+          "eval_time": "1m",
+          "exp_samples": [
+            {
+              "labels": "nethermind_blockchain_height{host=\"main\",instance=\"n\",job=\"eth1\"}",
+              "value": 26054634
+            },
+            {
+              "labels": "chain_head_block{host=\"fallback\",instance=\"g\",job=\"eth1\"}",
+              "value": 26054633
+            }
+          ]
+        },
+        {
+          "expr": "((nethermind_blockchain_height{job=\"eth1\",host=~\"main|fallback\"} or on(job, instance) chain_head_block{job=\"eth1\",host=~\"main|fallback\"}) and on(job, instance) (up{job=\"eth1\",host=~\"main|fallback\"} == 1))",
+          "eval_time": "2m",
+          "exp_samples": []
+        }
+      ]
+    }
+  ]
+}

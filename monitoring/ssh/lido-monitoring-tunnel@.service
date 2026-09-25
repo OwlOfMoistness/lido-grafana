@@ -1,0 +1,17 @@
+[Unit]
+Description=Lido monitoring SSH tunnel to %i
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+# Match the SSH account and key path in ssh_config; this is the hub's local user.
+User=REPLACE_WITH_LOCAL_USER
+ExecStart=/usr/bin/ssh -F /etc/lido-monitoring/ssh_config -NT %i
+Restart=always
+RestartSec=10
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,21 @@
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["127.0.0.1:9092"]
+
+  - job_name: fleet
+    # Nimbus/older exporters may omit a content type understood by Prometheus 3.
+    fallback_scrape_protocol: PrometheusText0.0.4
+    file_sd_configs:
+      - files: [/etc/prometheus/targets.json]
+        refresh_interval: 30s
+    # All metric types for a physical host use the same stable host label.
+    # Preserve the real target address in instance for troubleshooting.
+    relabel_configs:
+      - source_labels: [component]
+        target_label: job

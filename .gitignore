@@ -1,0 +1,37 @@
+# Original inputs, deployment notes and earlier design iterations (local only)
+/private/
+
+# Local credentials and deployment overrides; publish only example values.
+.env
+.env.*
+!.env.example
+*.local.yml
+*.local.yaml
+*.local.json
+*.local.service
+/monitoring/ssh/ssh_config
+/monitoring/samples/
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+known_hosts
+known_hosts.*
+authorized_keys
+
+# Runtime state, backups and generated scratch files
+/monitoring/data/
+/monitoring/grafana-data/
+/monitoring/prometheus-data/
+/backups/
+*.log
+*.sqlite
+*.sqlite3
+*.db
+*.bak
+*.tmp
+__pycache__/
+*.py[cod]
+.DS_Store
+._*
+Thumbs.db

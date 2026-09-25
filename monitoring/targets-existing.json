@@ -1,0 +1,123 @@
+[
+  {
+    "targets": [
+      "host.docker.internal:8808"
+    ],
+    "labels": {
+      "host": "validator-1",
+      "role": "validator",
+      "component": "validator"
+    }
+  },
+  {
+    "targets": [
+      "host.docker.internal:9103"
+    ],
+    "labels": {
+      "host": "validator-1",
+      "role": "validator",
+      "component": "node"
+    }
+  },
+  {
+    "targets": [
+      "host.docker.internal:28808"
+    ],
+    "labels": {
+      "host": "validator-2",
+      "role": "validator",
+      "component": "validator"
+    }
+  },
+  {
+    "targets": [
+      "host.docker.internal:29103"
+    ],
+    "labels": {
+      "host": "validator-2",
+      "role": "validator",
+      "component": "node"
+    }
+  },
+  {
+    "targets": [
+      "host.docker.internal:38808"
+    ],
+    "labels": {
+      "host": "validator-3",
+      "role": "validator",
+      "component": "validator"
+    }
+  },
+  {
+    "targets": [
+      "host.docker.internal:39103"
+    ],
+    "labels": {
+      "host": "validator-3",
+      "role": "validator",
+      "component": "node"
+    }
+  },
+  {
+    "targets": [
+      "host.docker.internal:18008"
+    ],
+    "labels": {
+      "host": "main",
+      "role": "backend",
+      "component": "eth2"
+    }
+  },
+  {
+    "targets": [
+      "host.docker.internal:19105"
+    ],
+    "labels": {
+      "host": "main",
+      "role": "backend",
+      "component": "eth1"
+    }
+  },
+  {
+    "targets": [
+      "host.docker.internal:49103"
+    ],
+    "labels": {
+      "host": "main",
+      "role": "backend",
+      "component": "node"
+    }
+  },
+  {
+    "targets": [
+      "host.docker.internal:28008"
+    ],
+    "labels": {
+      "host": "fallback",
+      "role": "backend",
+      "component": "eth2"
+    }
+  },
+  {
+    "targets": [
+      "host.docker.internal:29105"
+    ],
+    "labels": {
+      "host": "fallback",
+      "role": "backend",
+      "component": "eth1",
+      "__metrics_path__": "/debug/metrics/prometheus"
+    }
+  },
+  {
+    "targets": [
+      "host.docker.internal:59103"
+    ],
+    "labels": {
+      "host": "fallback",
+      "role": "backend",
+      "component": "node"
+    }
+  }
+]

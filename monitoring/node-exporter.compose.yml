@@ -1,0 +1,15 @@
+name: lido-host-metrics
+services:
+  node-exporter:
+    image: prom/node-exporter:v1.12.1
+    restart: unless-stopped
+    network_mode: host
+    pid: host
+    cap_drop: [ALL]
+    command:
+      - --web.listen-address=127.0.0.1:9103
+      - --path.rootfs=/host
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+    volumes:
+      - /:/host:ro,rslave

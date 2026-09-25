@@ -1,0 +1,4190 @@
+{
+  "id": null,
+  "uid": "lido-validator-fleet",
+  "title": "Lido \u00b7 Validator fleet",
+  "description": "Three Nimbus validator instances with shared main and fallback Nethermind or Geth execution clients and Nimbus beacon nodes. Loaded keys and successful submissions are distinguished from on-chain state. See monitoring/README.md for metric semantics and deployment.",
+  "tags": [
+    "lido",
+    "nimbus",
+    "nethermind",
+    "geth"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 7,
+  "editable": true,
+  "graphTooltip": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "annotations": {
+    "list": []
+  },
+  "links": [],
+  "templating": {
+    "list": [
+      {
+        "name": "validator",
+        "label": "Validator clients",
+        "type": "custom",
+        "query": "VC 1 : validator-1, VC 2 : validator-2, VC 3 : validator-3",
+        "hide": 0,
+        "multi": true,
+        "includeAll": true,
+        "allValue": null,
+        "current": {
+          "text": "All",
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": [
+          {
+            "text": "All",
+            "value": "$__all",
+            "selected": true
+          },
+          {
+            "text": "VC 1",
+            "value": "validator-1",
+            "selected": false
+          },
+          {
+            "text": "VC 2",
+            "value": "validator-2",
+            "selected": false
+          },
+          {
+            "text": "VC 3",
+            "value": "validator-3",
+            "selected": false
+          }
+        ]
+      },
+      {
+        "name": "backend",
+        "label": "Shared servers",
+        "type": "custom",
+        "query": "main,fallback",
+        "hide": 0,
+        "multi": true,
+        "includeAll": true,
+        "allValue": null,
+        "current": {
+          "text": "All",
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": [
+          {
+            "text": "All",
+            "value": "$__all",
+            "selected": true
+          },
+          {
+            "text": "main",
+            "value": "main",
+            "selected": false
+          },
+          {
+            "text": "fallback",
+            "value": "fallback",
+            "selected": false
+          }
+        ]
+      },
+      {
+        "name": "accuracy_window",
+        "label": "Accuracy window",
+        "type": "custom",
+        "query": "1h,30m,6h,24h",
+        "hide": 0,
+        "multi": false,
+        "includeAll": false,
+        "allValue": null,
+        "current": {
+          "text": "1h",
+          "value": "1h"
+        },
+        "options": [
+          {
+            "text": "1h",
+            "value": "1h",
+            "selected": true
+          },
+          {
+            "text": "30m",
+            "value": "30m",
+            "selected": false
+          },
+          {
+            "text": "6h",
+            "value": "6h",
+            "selected": false
+          },
+          {
+            "text": "24h",
+            "value": "24h",
+            "selected": false
+          }
+        ]
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Fleet overview",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Loaded validators",
+      "description": "Loaded keys, not the on-chain active count. Suppressed if any selected validator endpoint or its count metric is missing, rather than displaying a misleading partial total.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 4,
+        "h": 2
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "noValue": "No data",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "validator-1"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "VC 1"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "validator-2"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "VC 2"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "validator-3"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "VC 3"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "last"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "text": {
+          "valueSize": 30
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "sum((validators{job=\"validator\",host=~\"${validator:regex}\"} and on(job, instance) (up{job=\"validator\",host=~\"${validator:regex}\"} == 1))) and on() (count((validators{job=\"validator\",host=~\"${validator:regex}\"} and on(job, instance) (up{job=\"validator\",host=~\"${validator:regex}\"} == 1))) == count(up{job=\"validator\",host=~\"${validator:regex}\"}))",
+          "editorMode": "code",
+          "legendFormat": "{{host}}",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Activity totals",
+      "description": "Estimated successful submissions over the selected dashboard time range. Calculated from the validator client only, so shared beacon nodes are not counted again. Counter resets are handled; scrape outages and history before this Prometheus started can make totals incomplete. Submission is not proof of on-chain inclusion.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 1,
+        "w": 10,
+        "h": 2
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "noValue": "No data",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "last"
+          ],
+          "fields": ""
+        },
+        "orientation": "vertical",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value_and_name",
+        "text": {
+          "titleSize": 12,
+          "valueSize": 24
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "sum(increase(beacon_attestations_sent_total{job=\"validator\",host=~\"${validator:regex}\"}[$__range]))",
+          "editorMode": "code",
+          "legendFormat": "Attestations",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "sum(increase(beacon_blocks_sent_total{job=\"validator\",host=~\"${validator:regex}\"}[$__range]))",
+          "editorMode": "code",
+          "legendFormat": "Proposals",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Metrics reporting",
+      "description": "Reporting now: fraction of selected validator metric endpoints currently reachable. Scrape history: the lowest collection availability among selected instances over the time range, for observed samples only. Neither measures duty success.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 14,
+        "y": 1,
+        "w": 10,
+        "h": 2
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "No data",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.001
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "decimals": 0,
+          "min": 0,
+          "max": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "last"
+          ],
+          "fields": ""
+        },
+        "orientation": "vertical",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value_and_name",
+        "text": {
+          "titleSize": 12,
+          "valueSize": 24
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "sum(up{job=\"validator\",host=~\"${validator:regex}\"}) / count(up{job=\"validator\",host=~\"${validator:regex}\"})",
+          "editorMode": "code",
+          "legendFormat": "Reporting now",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "min(avg_over_time(up{job=\"validator\",host=~\"${validator:regex}\"}[$__range]))",
+          "editorMode": "code",
+          "legendFormat": "Scrape history",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Attestations \u00b7 per 45 s",
+      "description": "Uses the supplied Rocket Pool activity panel\u2019s Nimbus calculation: rate(counter[$__rate_interval]) \u00d7 45. Values are average successful submissions per 45 seconds, not counts in fixed 45-second buckets. Grafana automatically chooses the averaging window from chart resolution and scrape interval. Counter resets are handled before aggregation. One series per validator instance. The attestation axis starts at zero with a soft upper bound of 5; it expands automatically for higher activity.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 3,
+        "w": 9,
+        "h": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "axisLabel": "Submissions / 45 s",
+            "axisSoftMax": 5
+          },
+          "decimals": 2,
+          "min": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "validator-1"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "VC 1"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "validator-2"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "VC 2"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "validator-3"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "VC 3"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "sum by(host)(rate(beacon_attestations_sent_total{job=\"validator\",host=~\"${validator:regex}\"}[$__rate_interval])) * 45",
+          "editorMode": "code",
+          "legendFormat": "{{host}}",
+          "instant": false,
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Proposals \u00b7 rolling 5m",
+      "description": "Whole-number estimates of successful proposal submissions during the preceding five minutes: round(sum(increase(counter[5m]))). Handles observed counter resets. These are rolling windows, so adjacent points can include the same proposal; do not sum plotted points. Prometheus extrapolates between scrapes, so this is not an exact event log. Missing metrics remain No data.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 9,
+        "y": 3,
+        "w": 6,
+        "h": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "noValue": "",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "custom": {
+            "drawStyle": "bars",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 65,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "axisLabel": "Proposals / 5 min",
+            "axisSoftMax": 2
+          },
+          "decimals": 0,
+          "min": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "validator-1"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "VC 1"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "validator-2"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "VC 2"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "validator-3"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "VC 3"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "round(sum by(host)(increase(beacon_blocks_sent_total{job=\"validator\",host=~\"${validator:regex}\"}[5m])))",
+          "editorMode": "code",
+          "legendFormat": "{{host}}",
+          "instant": false,
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "type": "timeseries",
+      "title": "Accuracy \u00b7 $accuracy_window",
+      "description": "Attestation source/target/head correctness for each selected beacon node\u2019s monitored validators. Main and fallback are independent series, never blended. Solid lines = main; dashed lines = fallback. This is an indication of your validator performance, not a network-wide health measurement. Zero opportunities, offline servers and missing metrics remain No data.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 15,
+        "y": 3,
+        "w": 9,
+        "h": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "No data",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "min": 0,
+          "max": 1,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 1
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "main Source"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "main Target"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "main Head"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "fallback Source"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    5,
+                    5
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "fallback Target"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    5,
+                    5
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "fallback Head"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    5,
+                    5
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "(sum by(host) (increase(validator_monitor_prev_epoch_on_chain_source_attester_hit_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window])) / (sum by(host) (increase(validator_monitor_prev_epoch_on_chain_source_attester_hit_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window])) + sum by(host) (increase(validator_monitor_prev_epoch_on_chain_source_attester_miss_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window])))) and on(host) ((sum by(host) (increase(validator_monitor_prev_epoch_on_chain_source_attester_hit_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window])) + sum by(host) (increase(validator_monitor_prev_epoch_on_chain_source_attester_miss_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window]))) > 0) and on(host) (min by(host) (up{job=\"eth2\",host=~\"${backend:regex}\"}) == 1)",
+          "editorMode": "code",
+          "legendFormat": "{{host}} Source",
+          "instant": false,
+          "range": true
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "(sum by(host) (increase(validator_monitor_prev_epoch_on_chain_target_attester_hit_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window])) / (sum by(host) (increase(validator_monitor_prev_epoch_on_chain_target_attester_hit_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window])) + sum by(host) (increase(validator_monitor_prev_epoch_on_chain_target_attester_miss_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window])))) and on(host) ((sum by(host) (increase(validator_monitor_prev_epoch_on_chain_target_attester_hit_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window])) + sum by(host) (increase(validator_monitor_prev_epoch_on_chain_target_attester_miss_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window]))) > 0) and on(host) (min by(host) (up{job=\"eth2\",host=~\"${backend:regex}\"}) == 1)",
+          "editorMode": "code",
+          "legendFormat": "{{host}} Target",
+          "instant": false,
+          "range": true
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "(sum by(host) (increase(validator_monitor_prev_epoch_on_chain_head_attester_hit_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window])) / (sum by(host) (increase(validator_monitor_prev_epoch_on_chain_head_attester_hit_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window])) + sum by(host) (increase(validator_monitor_prev_epoch_on_chain_head_attester_miss_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window])))) and on(host) ((sum by(host) (increase(validator_monitor_prev_epoch_on_chain_head_attester_hit_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window])) + sum by(host) (increase(validator_monitor_prev_epoch_on_chain_head_attester_miss_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window]))) > 0) and on(host) (min by(host) (up{job=\"eth2\",host=~\"${backend:regex}\"}) == 1)",
+          "editorMode": "code",
+          "legendFormat": "{{host}} Head",
+          "instant": false,
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "type": "table",
+      "title": "Validator clients \u00b7 activity totals for selected period",
+      "description": "Compare all selected validator clients. Metrics Up means the endpoint responds, not proof of successful duties. Loaded keys are attached keys, not on-chain active count. Attestations/proposals are successful submissions over the selected time range. Good links counts Nimbus endpoints classified good; it does not identify which backend is active. Missing values remain blank (\u2014). Expand client details below for history and other connection states.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 24,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "max by(host) (up{job=\"validator\",host=~\"${validator:regex}\"})",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "max by(host) ((validators{job=\"validator\",host=~\"${validator:regex}\"} and on(job, instance) (up{job=\"validator\",host=~\"${validator:regex}\"} == 1)))",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "sum by(host) (increase(beacon_attestations_sent_total{job=\"validator\",host=~\"${validator:regex}\"}[$__range]))",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "sum by(host) (increase(beacon_blocks_sent_total{job=\"validator\",host=~\"${validator:regex}\"}[$__range]))",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code"
+        },
+        {
+          "refId": "E",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "max by(host) ((process_resident_memory_bytes{job=\"validator\",host=~\"${validator:regex}\"} and on(job, instance) (up{job=\"validator\",host=~\"${validator:regex}\"} == 1)))",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code"
+        },
+        {
+          "refId": "F",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "max by(host) (1 - avg by(host)(rate(node_cpu_seconds_total{job=\"node\",host=~\"${validator:regex}\",mode=\"idle\"}[$__rate_interval])))",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code"
+        },
+        {
+          "refId": "G",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "max by(host) ((1 - node_memory_MemAvailable_bytes{job=\"node\",host=~\"${validator:regex}\"} / node_memory_MemTotal_bytes{job=\"node\",host=~\"${validator:regex}\"}) and on(job,instance) (up{job=\"node\",host=~\"${validator:regex}\"} == 1))",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code"
+        },
+        {
+          "refId": "H",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "max by(host) (validator_client_node_counts{status=\"good\",job=\"validator\",host=~\"${validator:regex}\"} and on(job,instance) (up{job=\"validator\",host=~\"${validator:regex}\"} == 1))",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "host",
+            "mode": "outer"
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "host",
+                "Value #A",
+                "Value #B",
+                "Value #C",
+                "Value #D",
+                "Value #E",
+                "Value #F",
+                "Value #G",
+                "Value #H"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "indexByName": {
+              "host": 0,
+              "Value #A": 1,
+              "Value #B": 2,
+              "Value #C": 3,
+              "Value #D": 4,
+              "Value #E": 5,
+              "Value #F": 6,
+              "Value #G": 7,
+              "Value #H": 8
+            },
+            "renameByName": {
+              "Value #A": "VC metrics",
+              "Value #B": "Loaded keys",
+              "Value #C": "Attestations",
+              "Value #D": "Proposals",
+              "Value #E": "VC RAM",
+              "Value #F": "CPU",
+              "Value #G": "Host RAM",
+              "Value #H": "Good links",
+              "host": "Instance"
+            },
+            "excludeByName": {}
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "\u2014",
+          "unit": "short",
+          "decimals": 0,
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto",
+            "filterable": false,
+            "minWidth": 70
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "VC metrics"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "Down",
+                        "color": "red"
+                      },
+                      "1": {
+                        "text": "Up",
+                        "color": "green"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-text"
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Loaded keys"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Attestations"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Proposals"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "VC RAM"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bytes"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CPU"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Host RAM"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Good links"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Instance"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 130
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "validator-1": {
+                        "text": "VC 1"
+                      },
+                      "validator-2": {
+                        "text": "VC 2"
+                      },
+                      "validator-3": {
+                        "text": "VC 3"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "Instance",
+            "desc": false
+          }
+        ]
+      }
+    },
+    {
+      "id": 39,
+      "type": "table",
+      "title": "Shared servers \u00b7 execution and consensus",
+      "description": "Main and fallback are shown independently. EC = Nethermind or Geth; CL = Nimbus beacon node. Head accuracy uses the selected accuracy window and each beacon node\u2019s monitored validator set. It is not per-validator-instance accuracy. Expand server details for source/target/head accuracy histories, chain heads and monitor count. RAM is process memory; Geth process RAM is unavailable without a verified process-memory metric (system_memory_* is not substituted); Host RAM and CPU are machine percentages.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 24,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "max by(host) (up{job=\"eth1\",host=~\"${backend:regex}\"})",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "max by(host) (up{job=\"eth2\",host=~\"${backend:regex}\"})",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "max by(host) (((ethereum_peer_count{job=\"eth1\",host=~\"${backend:regex}\"} or on(job, instance) p2p_peers{job=\"eth1\",host=~\"${backend:regex}\"}) and on(job, instance) (up{job=\"eth1\",host=~\"${backend:regex}\"} == 1)))",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "max by(host) ((nbc_peers{job=\"eth2\",host=~\"${backend:regex}\"} and on(job, instance) (up{job=\"eth2\",host=~\"${backend:regex}\"} == 1)))",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code"
+        },
+        {
+          "refId": "E",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "max by(host) ((process_working_set_bytes{job=\"eth1\",host=~\"${backend:regex}\"} and on(job, instance) (up{job=\"eth1\",host=~\"${backend:regex}\"} == 1)))",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code"
+        },
+        {
+          "refId": "F",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "max by(host) ((process_resident_memory_bytes{job=\"eth2\",host=~\"${backend:regex}\"} and on(job, instance) (up{job=\"eth2\",host=~\"${backend:regex}\"} == 1)))",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code"
+        },
+        {
+          "refId": "G",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "max by(host) (1 - avg by(host)(rate(node_cpu_seconds_total{job=\"node\",host=~\"${backend:regex}\",mode=\"idle\"}[$__rate_interval])))",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code"
+        },
+        {
+          "refId": "H",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "max by(host) ((1 - node_memory_MemAvailable_bytes{job=\"node\",host=~\"${backend:regex}\"} / node_memory_MemTotal_bytes{job=\"node\",host=~\"${backend:regex}\"}) and on(job,instance) (up{job=\"node\",host=~\"${backend:regex}\"} == 1))",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code"
+        },
+        {
+          "refId": "I",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "(sum by(host) (increase(validator_monitor_prev_epoch_on_chain_head_attester_hit_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window])) / (sum by(host) (increase(validator_monitor_prev_epoch_on_chain_head_attester_hit_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window])) + sum by(host) (increase(validator_monitor_prev_epoch_on_chain_head_attester_miss_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window])))) and on(host) ((sum by(host) (increase(validator_monitor_prev_epoch_on_chain_head_attester_hit_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window])) + sum by(host) (increase(validator_monitor_prev_epoch_on_chain_head_attester_miss_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window]))) > 0) and on(host) (min by(host) (up{job=\"eth2\",host=~\"${backend:regex}\"}) == 1)",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "host",
+            "mode": "outer"
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "host",
+                "Value #A",
+                "Value #B",
+                "Value #C",
+                "Value #D",
+                "Value #E",
+                "Value #F",
+                "Value #G",
+                "Value #H",
+                "Value #I"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "indexByName": {
+              "host": 0,
+              "Value #A": 1,
+              "Value #B": 2,
+              "Value #C": 3,
+              "Value #D": 4,
+              "Value #E": 5,
+              "Value #F": 6,
+              "Value #G": 7,
+              "Value #H": 8,
+              "Value #I": 9
+            },
+            "renameByName": {
+              "Value #A": "EC metrics",
+              "Value #B": "CL metrics",
+              "Value #C": "EC peers",
+              "Value #D": "CL peers",
+              "Value #E": "EC RAM",
+              "Value #F": "CL RAM",
+              "Value #G": "CPU",
+              "Value #H": "Host RAM",
+              "Value #I": "Head accuracy",
+              "host": "Server"
+            },
+            "excludeByName": {}
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "\u2014",
+          "unit": "short",
+          "decimals": 0,
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto",
+            "filterable": false,
+            "minWidth": 70
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "EC metrics"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "Down",
+                        "color": "red"
+                      },
+                      "1": {
+                        "text": "Up",
+                        "color": "green"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-text"
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CL metrics"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "Down",
+                        "color": "red"
+                      },
+                      "1": {
+                        "text": "Up",
+                        "color": "green"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-text"
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "EC peers"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CL peers"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "EC RAM"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bytes"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CL RAM"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bytes"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CPU"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Host RAM"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Head accuracy"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Server"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 130
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "Server",
+            "desc": true
+          }
+        ]
+      }
+    },
+    {
+      "id": 9,
+      "type": "row",
+      "title": "Validator client \u00b7 ${validator:text}",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 19,
+        "w": 24,
+        "h": 1
+      },
+      "repeat": "validator"
+    },
+    {
+      "id": 10,
+      "type": "stat",
+      "title": "Validator client",
+      "description": "Metrics Up means this endpoint is reachable, not proof of successful duties. Loaded keys are attached validators, not an on-chain active count.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 4,
+        "h": 3
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "Down",
+                        "color": "red"
+                      },
+                      "1": {
+                        "text": "Up",
+                        "color": "green"
+                      }
+                    }
+                  },
+                  {
+                    "type": "special",
+                    "options": {
+                      "match": "null",
+                      "result": {
+                        "text": "No data",
+                        "color": "text"
+                      }
+                    }
+                  },
+                  {
+                    "type": "special",
+                    "options": {
+                      "match": "nan",
+                      "result": {
+                        "text": "No data",
+                        "color": "text"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "last"
+          ],
+          "fields": ""
+        },
+        "orientation": "horizontal",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value_and_name",
+        "text": {
+          "titleSize": 12,
+          "valueSize": 28
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "up{job=\"validator\",host=~\"${validator:regex}\"}",
+          "editorMode": "code",
+          "legendFormat": "Metrics",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "(validators{job=\"validator\",host=~\"${validator:regex}\"} and on(job, instance) (up{job=\"validator\",host=~\"${validator:regex}\"} == 1))",
+          "editorMode": "code",
+          "legendFormat": "Loaded keys",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "Activity \u00b7 selected period",
+      "description": "Estimated successful submissions over the selected dashboard time range. Calculated from the validator client only, so shared beacon nodes are not counted again. Counter resets are handled; scrape outages and history before this Prometheus started can make totals incomplete. Submission is not proof of on-chain inclusion.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 20,
+        "w": 6,
+        "h": 3
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "noValue": "No data",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "last"
+          ],
+          "fields": ""
+        },
+        "orientation": "horizontal",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value_and_name",
+        "text": {
+          "titleSize": 12,
+          "valueSize": 28
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "sum(increase(beacon_attestations_sent_total{job=\"validator\",host=~\"${validator:regex}\"}[$__range]))",
+          "editorMode": "code",
+          "legendFormat": "Attestations",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "sum(increase(beacon_blocks_sent_total{job=\"validator\",host=~\"${validator:regex}\"}[$__range]))",
+          "editorMode": "code",
+          "legendFormat": "Proposals",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "type": "stat",
+      "title": "VC RAM",
+      "description": "Nimbus validator process resident memory on this instance. Beacon and execution client memory is shown under shared servers.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 10,
+        "y": 20,
+        "w": 4,
+        "h": 3
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "noValue": "No data",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "purple"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "validator-1"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "VC 1"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "validator-2"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "VC 2"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "validator-3"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "VC 3"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "last"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "text": {
+          "valueSize": 30
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "(process_resident_memory_bytes{job=\"validator\",host=~\"${validator:regex}\"} and on(job, instance) (up{job=\"validator\",host=~\"${validator:regex}\"} == 1))",
+          "editorMode": "code",
+          "legendFormat": "{{host}}",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "type": "stat",
+      "title": "Host resources",
+      "description": "CPU utilization and memory consumption of this validator machine. These are host percentages; validator process RAM is shown separately.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 14,
+        "y": 20,
+        "w": 6,
+        "h": 3
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "No data",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "min": 0,
+          "max": 1,
+          "decimals": 1
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "last"
+          ],
+          "fields": ""
+        },
+        "orientation": "horizontal",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value_and_name",
+        "text": {
+          "titleSize": 12,
+          "valueSize": 28
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "1 - avg by(host)(rate(node_cpu_seconds_total{job=\"node\",host=~\"${validator:regex}\",mode=\"idle\"}[$__rate_interval]))",
+          "editorMode": "code",
+          "legendFormat": "CPU",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "(1 - node_memory_MemAvailable_bytes{job=\"node\",host=~\"${validator:regex}\"} / node_memory_MemTotal_bytes{job=\"node\",host=~\"${validator:regex}\"}) and on(job,instance) (up{job=\"node\",host=~\"${validator:regex}\"} == 1)",
+          "editorMode": "code",
+          "legendFormat": "RAM",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "type": "stat",
+      "title": "Beacon links",
+      "description": "Nimbus reports counts, not endpoint identity. good: usable for all requests; viable: usable for some requests; bad: unusable. With two configured backends, two good connections indicates full observed redundancy. This does not identify which server handled a particular request.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 20,
+        "w": 4,
+        "h": 3
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "good"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "viable"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "bad"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "last"
+          ],
+          "fields": ""
+        },
+        "orientation": "horizontal",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value_and_name",
+        "text": {
+          "titleSize": 12,
+          "valueSize": 28
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "validator_client_node_counts{job=\"validator\",host=~\"${validator:regex}\"} and on(job,instance) (up{job=\"validator\",host=~\"${validator:regex}\"} == 1)",
+          "editorMode": "code",
+          "legendFormat": "{{status}}",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "Validator activity",
+      "description": "Attestations: average submissions per 45 seconds (left axis, RP rate formula). Proposals: whole-number rolling five-minute estimates (right axis). Whole-number estimates of successful proposal submissions during the preceding five minutes: round(sum(increase(counter[5m]))). Handles observed counter resets. These are rolling windows, so adjacent points can include the same proposal; do not sum plotted points. Prometheus extrapolates between scrapes, so this is not an exact event log. Missing metrics remain No data.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 23,
+        "w": 10,
+        "h": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "axisLabel": "Attestations / 45 s",
+            "axisSoftMax": 5
+          },
+          "decimals": 2,
+          "min": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "Proposals / 5 min"
+              },
+              {
+                "id": "custom.axisSoftMax",
+                "value": 2
+              },
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 65
+              },
+              {
+                "id": "mappings",
+                "value": []
+              },
+              {
+                "id": "noValue",
+                "value": ""
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "sum(rate(beacon_attestations_sent_total{job=\"validator\",host=~\"${validator:regex}\"}[$__rate_interval])) * 45",
+          "editorMode": "code",
+          "legendFormat": "Attestations / 45 s",
+          "instant": false,
+          "range": true
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "round(sum(increase(beacon_blocks_sent_total{job=\"validator\",host=~\"${validator:regex}\"}[5m])))",
+          "editorMode": "code",
+          "legendFormat": "Proposals / 5 min",
+          "instant": false,
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "type": "timeseries",
+      "title": "Host CPU / RAM",
+      "description": "CPU and RAM usage as percentages of this validator host. Both share the percentage axis; process memory in bytes is shown separately.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 10,
+        "y": 23,
+        "w": 8,
+        "h": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "No data",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "min": 0,
+          "max": 1,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "1 - avg by(host)(rate(node_cpu_seconds_total{job=\"node\",host=~\"${validator:regex}\",mode=\"idle\"}[$__rate_interval]))",
+          "editorMode": "code",
+          "legendFormat": "CPU",
+          "instant": false,
+          "range": true
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "(1 - node_memory_MemAvailable_bytes{job=\"node\",host=~\"${validator:regex}\"} / node_memory_MemTotal_bytes{job=\"node\",host=~\"${validator:regex}\"}) and on(job,instance) (up{job=\"node\",host=~\"${validator:regex}\"} == 1)",
+          "editorMode": "code",
+          "legendFormat": "RAM",
+          "instant": false,
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "type": "timeseries",
+      "title": "Beacon connection history",
+      "description": "Nimbus reports counts, not endpoint identity. good: usable for all requests; viable: usable for some requests; bad: unusable. With two configured backends, two good connections indicates full observed redundancy. This does not identify which server handled a particular request.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 23,
+        "w": 6,
+        "h": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "good"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "viable"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "bad"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "validator_client_node_counts{job=\"validator\",host=~\"${validator:regex}\"} and on(job,instance) (up{job=\"validator\",host=~\"${validator:regex}\"} == 1)",
+          "editorMode": "code",
+          "legendFormat": "{{status}}",
+          "instant": false,
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "type": "row",
+      "title": "Shared execution / consensus server \u00b7 $backend",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 29,
+        "w": 24,
+        "h": 1
+      },
+      "repeat": "backend"
+    },
+    {
+      "id": 20,
+      "type": "stat",
+      "title": "Metrics",
+      "description": "Reachability of execution, consensus and host metric endpoints from the hub. Up does not establish sync or readiness.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 30,
+        "w": 4,
+        "h": 3
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "Down",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "Up",
+                  "color": "green"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "last"
+          ],
+          "fields": ""
+        },
+        "orientation": "horizontal",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value_and_name",
+        "text": {
+          "titleSize": 12,
+          "valueSize": 24
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "up{job=\"eth1\",host=~\"${backend:regex}\"}",
+          "editorMode": "code",
+          "legendFormat": "EC",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "up{job=\"eth2\",host=~\"${backend:regex}\"}",
+          "editorMode": "code",
+          "legendFormat": "CL",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "up{job=\"node\",host=~\"${backend:regex}\"}",
+          "editorMode": "code",
+          "legendFormat": "Host",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "type": "stat",
+      "title": "Peers",
+      "description": "Execution and consensus peer counts. Separate networks, not a combined total.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 30,
+        "w": 4,
+        "h": 3
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "last"
+          ],
+          "fields": ""
+        },
+        "orientation": "horizontal",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value_and_name",
+        "text": {
+          "titleSize": 12,
+          "valueSize": 28
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "((ethereum_peer_count{job=\"eth1\",host=~\"${backend:regex}\"} or on(job, instance) p2p_peers{job=\"eth1\",host=~\"${backend:regex}\"}) and on(job, instance) (up{job=\"eth1\",host=~\"${backend:regex}\"} == 1))",
+          "editorMode": "code",
+          "legendFormat": "EC",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "(nbc_peers{job=\"eth2\",host=~\"${backend:regex}\"} and on(job, instance) (up{job=\"eth2\",host=~\"${backend:regex}\"} == 1))",
+          "editorMode": "code",
+          "legendFormat": "CL",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "type": "stat",
+      "title": "Client RAM",
+      "description": "Execution client working-set bytes and consensus client resident memory, displayed separately. These processes run on this shared server, not on a validator instance. Geth process RAM is unavailable until a verified process-memory metric is provided; system_memory_* is not substituted for process RAM.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 30,
+        "w": 5,
+        "h": 3
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "noValue": "No data",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "decimals": 2
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "last"
+          ],
+          "fields": ""
+        },
+        "orientation": "horizontal",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value_and_name",
+        "text": {
+          "titleSize": 12,
+          "valueSize": 24
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "(process_working_set_bytes{job=\"eth1\",host=~\"${backend:regex}\"} and on(job, instance) (up{job=\"eth1\",host=~\"${backend:regex}\"} == 1))",
+          "editorMode": "code",
+          "legendFormat": "EC \u00b7 Nethermind",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "(process_resident_memory_bytes{job=\"eth2\",host=~\"${backend:regex}\"} and on(job, instance) (up{job=\"eth2\",host=~\"${backend:regex}\"} == 1))",
+          "editorMode": "code",
+          "legendFormat": "CL \u00b7 Nimbus",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "type": "stat",
+      "title": "Host resources",
+      "description": "CPU utilization and RAM consumption of this shared server.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 13,
+        "y": 30,
+        "w": 4,
+        "h": 3
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "No data",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "min": 0,
+          "max": 1,
+          "decimals": 1
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "last"
+          ],
+          "fields": ""
+        },
+        "orientation": "horizontal",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value_and_name",
+        "text": {
+          "titleSize": 12,
+          "valueSize": 24
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "1 - avg by(host)(rate(node_cpu_seconds_total{job=\"node\",host=~\"${backend:regex}\",mode=\"idle\"}[$__rate_interval]))",
+          "editorMode": "code",
+          "legendFormat": "CPU",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "(1 - node_memory_MemAvailable_bytes{job=\"node\",host=~\"${backend:regex}\"} / node_memory_MemTotal_bytes{job=\"node\",host=~\"${backend:regex}\"}) and on(job,instance) (up{job=\"node\",host=~\"${backend:regex}\"} == 1)",
+          "editorMode": "code",
+          "legendFormat": "RAM",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "type": "stat",
+      "title": "Chain / validator monitor",
+      "description": "Full beacon head slot and execution head block numbers. These use different counters and are not summed. Compare each with the corresponding main/fallback value. Monitored validators are the set observed by this beacon node, not an authoritative fleet key count.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 17,
+        "y": 30,
+        "w": 7,
+        "h": 3
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "noValue": "No data",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "last"
+          ],
+          "fields": ""
+        },
+        "orientation": "horizontal",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value_and_name",
+        "text": {
+          "titleSize": 12,
+          "valueSize": 20
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "(beacon_head_slot{job=\"eth2\",host=~\"${backend:regex}\"} and on(job, instance) (up{job=\"eth2\",host=~\"${backend:regex}\"} == 1))",
+          "editorMode": "code",
+          "legendFormat": "Beacon slot",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "((nethermind_blockchain_height{job=\"eth1\",host=~\"${backend:regex}\"} or on(job, instance) chain_head_block{job=\"eth1\",host=~\"${backend:regex}\"}) and on(job, instance) (up{job=\"eth1\",host=~\"${backend:regex}\"} == 1))",
+          "editorMode": "code",
+          "legendFormat": "Execution block",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "(validator_monitor_validators_total{job=\"eth2\",host=~\"${backend:regex}\"} and on(job, instance) (up{job=\"eth2\",host=~\"${backend:regex}\"} == 1))",
+          "editorMode": "code",
+          "legendFormat": "Monitored validators",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "type": "timeseries",
+      "title": "Accuracy \u00b7 $accuracy_window",
+      "description": "Observed accuracy for the validators monitored by THIS beacon node. Uses aggregate validator=\"total\" metrics and a window long enough for epoch updates. Main and fallback observations are never summed. The two servers may monitor different sets as duties fail over. Zero opportunities or missing monitoring metrics are No data, not 100%. This is not a per-validator-instance attribution.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 33,
+        "w": 5,
+        "h": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "No data",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "min": 0,
+          "max": 1,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "(sum(increase(validator_monitor_prev_epoch_on_chain_source_attester_hit_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window])) / (sum(increase(validator_monitor_prev_epoch_on_chain_source_attester_hit_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window])) + sum(increase(validator_monitor_prev_epoch_on_chain_source_attester_miss_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window])))) and on() ((sum(increase(validator_monitor_prev_epoch_on_chain_source_attester_hit_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window])) + sum(increase(validator_monitor_prev_epoch_on_chain_source_attester_miss_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window]))) > 0) and on() (min(up{job=\"eth2\",host=~\"${backend:regex}\"}) == 1)",
+          "editorMode": "code",
+          "legendFormat": "Source",
+          "instant": false,
+          "range": true
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "(sum(increase(validator_monitor_prev_epoch_on_chain_target_attester_hit_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window])) / (sum(increase(validator_monitor_prev_epoch_on_chain_target_attester_hit_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window])) + sum(increase(validator_monitor_prev_epoch_on_chain_target_attester_miss_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window])))) and on() ((sum(increase(validator_monitor_prev_epoch_on_chain_target_attester_hit_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window])) + sum(increase(validator_monitor_prev_epoch_on_chain_target_attester_miss_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window]))) > 0) and on() (min(up{job=\"eth2\",host=~\"${backend:regex}\"}) == 1)",
+          "editorMode": "code",
+          "legendFormat": "Target",
+          "instant": false,
+          "range": true
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "(sum(increase(validator_monitor_prev_epoch_on_chain_head_attester_hit_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window])) / (sum(increase(validator_monitor_prev_epoch_on_chain_head_attester_hit_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window])) + sum(increase(validator_monitor_prev_epoch_on_chain_head_attester_miss_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window])))) and on() ((sum(increase(validator_monitor_prev_epoch_on_chain_head_attester_hit_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window])) + sum(increase(validator_monitor_prev_epoch_on_chain_head_attester_miss_total{job=\"eth2\",host=~\"${backend:regex}\",validator=\"total\"}[$accuracy_window]))) > 0) and on() (min(up{job=\"eth2\",host=~\"${backend:regex}\"}) == 1)",
+          "editorMode": "code",
+          "legendFormat": "Head",
+          "instant": false,
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "type": "timeseries",
+      "title": "Peer history",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 5,
+        "y": 33,
+        "w": 9,
+        "h": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "(nbc_peers{job=\"eth2\",host=~\"${backend:regex}\"} and on(job, instance) (up{job=\"eth2\",host=~\"${backend:regex}\"} == 1))",
+          "editorMode": "code",
+          "legendFormat": "Consensus",
+          "instant": false,
+          "range": true
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "((ethereum_peer_count{job=\"eth1\",host=~\"${backend:regex}\"} or on(job, instance) p2p_peers{job=\"eth1\",host=~\"${backend:regex}\"}) and on(job, instance) (up{job=\"eth1\",host=~\"${backend:regex}\"} == 1))",
+          "editorMode": "code",
+          "legendFormat": "Execution",
+          "instant": false,
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "type": "timeseries",
+      "title": "Client RAM history",
+      "description": " Geth process RAM is unavailable until a verified process-memory metric is provided; system_memory_* is not substituted for process RAM.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 14,
+        "y": 33,
+        "w": 10,
+        "h": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "noValue": "No data",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "(process_resident_memory_bytes{job=\"eth2\",host=~\"${backend:regex}\"} and on(job, instance) (up{job=\"eth2\",host=~\"${backend:regex}\"} == 1))",
+          "editorMode": "code",
+          "legendFormat": "Nimbus beacon",
+          "instant": false,
+          "range": true
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "(process_working_set_bytes{job=\"eth1\",host=~\"${backend:regex}\"} and on(job, instance) (up{job=\"eth1\",host=~\"${backend:regex}\"} == 1))",
+          "editorMode": "code",
+          "legendFormat": "Nethermind",
+          "instant": false,
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "type": "row",
+      "title": "Host storage \u00b7 all selected machines",
+      "collapsed": true,
+      "panels": [
+        {
+          "id": 36,
+          "type": "timeseries",
+          "title": "Filesystem space used",
+          "description": "Filesystem capacity unavailable to ordinary users: 1 - available/size, including reserved space. Each host and mount is separate; root and data mounts such as /data are included. Temporary/container filesystems and zero-size filesystems are excluded. No data means missing metrics, not an empty disk. Requires a read-only host rootfs mount plus --path.rootfs on containerized node-exporter; see STORAGE.md.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 40,
+            "w": 24,
+            "h": 6
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit",
+              "noValue": "No data",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": [
+                {
+                  "type": "special",
+                  "options": {
+                    "match": "null",
+                    "result": {
+                      "text": "No data",
+                      "color": "text"
+                    }
+                  }
+                },
+                {
+                  "type": "special",
+                  "options": {
+                    "match": "nan",
+                    "result": {
+                      "text": "No data",
+                      "color": "text"
+                    }
+                  }
+                }
+              ],
+              "min": 0,
+              "max": 1,
+              "custom": {
+                "drawStyle": "line",
+                "lineInterpolation": "linear",
+                "lineWidth": 2,
+                "fillOpacity": 8,
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "axisPlacement": "auto",
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "lido-prometheus"
+              },
+              "expr": "((1 - node_filesystem_avail_bytes{job=\"node\",host=~\"${validator:regex}|${backend:regex}\",fstype!~\"tmpfs|devtmpfs|overlay|squashfs|nsfs|tracefs\"} / node_filesystem_size_bytes{job=\"node\",host=~\"${validator:regex}|${backend:regex}\",fstype!~\"tmpfs|devtmpfs|overlay|squashfs|nsfs|tracefs\"}) and on(job,instance) (up{job=\"node\",host=~\"${validator:regex}|${backend:regex}\"} == 1)) and (node_filesystem_size_bytes{job=\"node\",host=~\"${validator:regex}|${backend:regex}\",fstype!~\"tmpfs|devtmpfs|overlay|squashfs|nsfs|tracefs\"} > 0)",
+              "editorMode": "code",
+              "legendFormat": "{{host}} \u00b7 {{mountpoint}}",
+              "instant": false,
+              "range": true
+            }
+          ],
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^validator-([123])( \u00b7 .*)$",
+                "renamePattern": "VC $1$2"
+              }
+            }
+          ]
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 39,
+        "w": 24,
+        "h": 1
+      }
+    }
+  ]
+}

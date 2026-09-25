@@ -1,0 +1,40 @@
+# Install an edited copy at /etc/lido-monitoring/ssh_config on the hub.
+# Every LocalForward binds ONLY to hub loopback. Ports match targets.json.
+# Replace HostName and confirm User, Port, and IdentityFile for every host.
+
+Host lido-metrics-validator-2
+    HostName REPLACE_WITH_VALIDATOR_2_SSH_HOST
+    Port 22
+    LocalForward 127.0.0.1:28808 127.0.0.1:8808
+    LocalForward 127.0.0.1:29103 127.0.0.1:9103
+
+Host lido-metrics-validator-3
+    HostName REPLACE_WITH_VALIDATOR_3_SSH_HOST
+    Port 22
+    LocalForward 127.0.0.1:38808 127.0.0.1:8808
+    LocalForward 127.0.0.1:39103 127.0.0.1:9103
+
+Host lido-metrics-main
+    HostName REPLACE_WITH_MAIN_SSH_HOST
+    Port 22
+    LocalForward 127.0.0.1:18008 127.0.0.1:8008
+    LocalForward 127.0.0.1:19105 127.0.0.1:9105
+    LocalForward 127.0.0.1:49103 127.0.0.1:9103
+
+Host lido-metrics-fallback
+    HostName REPLACE_WITH_FALLBACK_SSH_HOST
+    Port 22
+    LocalForward 127.0.0.1:28008 127.0.0.1:9100
+    LocalForward 127.0.0.1:29105 127.0.0.1:9105
+    LocalForward 127.0.0.1:59103 127.0.0.1:9103
+
+Host lido-metrics-*
+    User REPLACE_WITH_REMOTE_USER
+    IdentityFile /home/REPLACE_WITH_LOCAL_USER/.ssh/id_ed25519
+    IdentitiesOnly yes
+    BatchMode yes
+    StrictHostKeyChecking yes
+    ExitOnForwardFailure yes
+    ServerAliveInterval 30
+    ServerAliveCountMax 3
+    ConnectTimeout 15

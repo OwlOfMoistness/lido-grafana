@@ -1,0 +1,12 @@
+apiVersion: 1
+datasources:
+  - name: Lido Prometheus
+    uid: lido-prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9091
+    isDefault: false
+    editable: false
+    jsonData:
+      timeInterval: 30s
+      httpMethod: POST

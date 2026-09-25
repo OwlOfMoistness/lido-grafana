@@ -1,0 +1,3 @@
+# Child: the common Compose file supplies the exporter. Existing Nimbus and
+# SSH services are managed independently.
+services: {}

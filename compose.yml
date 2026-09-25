@@ -1,0 +1,23 @@
+name: lido-fleet
+
+# Compose selects the role using .env; no --profile flag or wrapper is needed.
+include:
+  - path: ./deployment/compose.${HUB:-false}.yml
+    project_directory: .
+
+services:
+  host-exporter:
+    image: prom/node-exporter:v1.12.1
+    restart: unless-stopped
+    network_mode: host
+    pid: host
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    command:
+      - --web.listen-address=127.0.0.1:${NODE_EXPORTER_PORT:-19103}
+      - --path.rootfs=/host
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+    volumes:
+      - /:/host:ro,rslave

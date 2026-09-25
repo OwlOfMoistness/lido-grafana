@@ -1,0 +1,24 @@
+# Overlay for a user-provided existing grafana-docker-compose.yml.
+# All relative source paths resolve from the directory of that FIRST file.
+# Keeps existing images, data mounts, ports, network and service names; adds exporter host-root visibility.
+services:
+  node-exporter:
+    # Linux host mounts must be visible inside the container for filesystem stats.
+    pid: host
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/host
+      - --collector.textfile.directory=/host/textfile_collector
+      - --web.listen-address=:9103
+    volumes:
+      - /:/host:ro,rslave
+  prometheus:
+    volumes:
+      - ./monitoring/prometheus-existing.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/targets-existing.json:/etc/prometheus/targets.json:ro
+  grafana:
+    volumes:
+      - ./monitoring/provisioning-existing/datasources/lido.yml:/etc/grafana/provisioning/datasources/lido.yml:ro
+      - ./monitoring/provisioning-existing/dashboards/lido.yml:/etc/grafana/provisioning/dashboards/lido.yml:ro
+      - ./monitoring/dashboards:/etc/grafana/lido-dashboards:ro

@@ -1,0 +1,124 @@
+name: Validate and publish container
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: container-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Validate release tag
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo 'Release tags must use vMAJOR.MINOR.PATCH, for example v1.0.0.'
+            exit 1
+          fi
+
+      - name: Check public files and unit tests
+        run: |
+          python3 scripts/check-public.py
+          python3 -m unittest discover -s scripts -p 'test_*.py' -v
+          python3 -m unittest discover -s deployment/tests -v
+
+      - name: Validate both Compose roles
+        env:
+          BACKEND_ADDRESS: 192.0.2.10
+          CONTROL_IMAGE: lido-fleet-control:ci
+          CONTROL_PULL_POLICY: never
+        run: |
+          HUB=false docker compose --env-file .env.example config --quiet
+          HUB=true docker compose --env-file .env.example config --quiet
+
+      - name: Build local test image
+        run: docker build --file deployment/Dockerfile --tag lido-fleet-control:ci .
+
+      - name: Generate synthetic configuration in the image
+        env:
+          CHILDREN: '[{"id":"validator-2","name":"VC 2","host":"child2.example.org","user":"monitor","local_port":20000},{"id":"validator-3","name":"VC 3","host":"child3.example.org","user":"monitor","local_port":20002}]'
+        run: |
+          mkdir -p "$RUNNER_TEMP/generated"
+          docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges \
+            -e BACKEND_ADDRESS=192.0.2.10 -e CHILDREN \
+            -v "$RUNNER_TEMP/generated:/generated" lido-fleet-control:ci generate
+          docker run --rm --network none --read-only --entrypoint sh lido-fleet-control:ci \
+            -c 'test -f /app/dashboard.json && test ! -e /app/private && test ! -e /app/.env && ssh -V'
+
+      - name: Validate generated Prometheus configuration and dashboard queries
+        run: |
+          docker run --rm --network none --entrypoint /bin/promtool \
+            -v "$RUNNER_TEMP/generated:/generated:ro" prom/prometheus:v3.14.0 \
+            check config /generated/prometheus.json
+          docker run --rm --network none --entrypoint /bin/promtool \
+            -v "$PWD/monitoring/tests:/tests:ro" prom/prometheus:v3.14.0 \
+            test rules /tests/queries.test.yml
+
+  publish:
+    needs: validate
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Resolve lowercase image name
+        id: image
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image tags and source labels
+        id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
+        with:
+          images: ${{ steps.image.outputs.name }}
+          tags: |
+            type=sha,format=long
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+          flavor: latest=auto
+
+      - name: Build and publish AMD64 and ARM64
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: deployment/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: mode=min
+          sbom: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
