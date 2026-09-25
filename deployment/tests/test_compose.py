@@ -55,7 +55,8 @@ class StandaloneCompose(unittest.TestCase):
         self.assertNotIn('GRAFANA_ADMIN_PASSWORD', tunnels['environment'])
         for mount in tunnels['volumes']:
             self.assertTrue(mount['read_only'])
-            self.assertFalse(mount['bind']['create_host_path'])
+            # Some Compose versions omit false fields when serializing JSON.
+            self.assertFalse(mount.get('bind', {}).get('create_host_path', False))
 
     def test_missing_role_mapping_is_reported(self):
         result = self.render('HUB=true\n')
