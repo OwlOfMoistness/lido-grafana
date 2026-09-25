@@ -53,7 +53,9 @@ jobs:
           CHILDREN: '[{"id":"validator-2","name":"VC 2","host":"child2.example.org","user":"monitor","local_port":20000},{"id":"validator-3","name":"VC 3","host":"child3.example.org","user":"monitor","local_port":20002}]'
         run: |
           mkdir -p "$RUNNER_TEMP/generated"
+          # Match the bind-mounted directory owner while keeping all capabilities dropped.
           docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges \
+            --user "$(id -u):$(id -g)" \
             -e BACKEND_ADDRESS=192.0.2.10 -e CHILDREN \
             -v "$RUNNER_TEMP/generated:/generated" lido-fleet-control:ci generate
           docker run --rm --network none --read-only --entrypoint sh lido-fleet-control:ci \
