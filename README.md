@@ -31,6 +31,35 @@ additional clients over SSH, with shared main/fallback backends. Multiple client
 processes on one machine and a backend without a fallback are not yet supported
 as dedicated configuration modes.
 
+## Restricted SSH access
+
+Use a dedicated monitoring account on each child and a monitoring-only key on
+the hub. The account should have no sudo privileges, Docker access, privileged
+group memberships, or access to validator secrets. Keep administrator accounts
+and validator-duty tunnels separate from this monitoring access.
+
+Enforce restrictions in each child's SSH daemon, scoped to the monitoring
+account: `MaxSessions 0` blocks shells, command execution and SFTP;
+`AllowTcpForwarding local` allows only local forwarding; and `PermitOpen` limits
+destinations to the child's confirmed metrics listeners (by default,
+`127.0.0.1:8808` and `127.0.0.1:19103`). Disable Unix-socket, agent, X11 and tunnel
+device forwarding as well. A disabled login shell or an authorized-key
+`restrict` option alone is not a substitute for the server policy. See the
+[OpenSSH server reference](https://man.openbsd.org/sshd_config).
+
+Keep the private key on the hub with restrictive file permissions and mount it
+only into the tunnel container. A read-only mount prevents modification, not
+use or copying of the key. Verify child host keys using a trusted connection.
+Source-IP restrictions on the authorized key are optional additional protection.
+Before relying on the policy, verify that metrics requests succeed while
+commands, SFTP, other destinations and reverse forwarding are denied.
+
+These are host-side controls; they do not require rebuilding the image. They
+allow TCP access to the approved services, not just HTTP requests to `/metrics`,
+so allowlist dedicated metrics endpoints only. They also do not isolate the
+hub's host network or limit monitoring resource usage; those require separate
+deployment controls.
+
 ## Getting started
 
 You need Linux servers with Docker Engine and Docker Compose 2.20+, enabled

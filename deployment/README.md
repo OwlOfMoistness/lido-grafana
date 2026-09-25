@@ -43,6 +43,8 @@ On the hub, fill in:
 - `BACKEND_ADDRESS`: the private address to which the hub's existing main and
   fallback SSH forwards bind. Use the address from its working service files.
 - `CHILDREN`: real SSH DNS/IP, SSH port and user for child 2 and child 3.
+  Use a dedicated monitoring account with
+  [server-enforced SSH restrictions](../README.md#restricted-ssh-access).
   Their existing validator metrics are normally `127.0.0.1:8808` on each child;
   confirm that endpoint on each child. `node_port` defaults to the new `19103`
   exporter, not the existing `9103` exporter.
