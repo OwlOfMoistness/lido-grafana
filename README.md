@@ -67,12 +67,14 @@ client metrics, and SSH access from the hub to its children. The shared backend
 metrics must already be reachable from the hub; see the
 [deployment guide](deployment/README.md) for endpoint and tunnel configuration.
 
-### 1. Get the files on each server
+### 1. Get two files on each server
+
+Create a directory and save [compose.yml](compose.yml) and
+[.env.example](.env.example) there, naming the latter `.env`. No repository
+checkout, extra Compose files, local dashboard files, or build is needed.
+The hub also needs its own SSH key and verified known-hosts file.
 
 ```bash
-git clone https://github.com/OwlOfMoistness/lido-grafana.git
-cd lido-grafana
-cp .env.example .env
 chmod 600 .env
 ```
 
@@ -82,13 +84,25 @@ On a **child**, the essential settings are:
 
 ```dotenv
 HUB=false
+COMPOSE_PROFILES=${HUB:-false}
 NODE_EXPORTER_PORT=19103
 ```
+
+Keep the automatic `COMPOSE_PROFILES` line unchanged on both roles; change only
+`HUB`. It selects the services without a command-line profile flag.
+
+This is a complete child `.env`. Compose pulls the standard
+`prom/node-exporter` image specified in `compose.yml`; the child does not use
+`CONTROL_IMAGE` or run Grafana, Prometheus, or the tunnel controller. Its existing
+Nimbus validator and host SSH daemon remain independently managed. The hub
+initiates the SSH connection and configures the child's display name and metrics
+destinations. No other `.env` entries are required on the child.
 
 On the **hub**, a minimal example for one child looks like this:
 
 ```dotenv
 HUB=true
+COMPOSE_PROFILES=${HUB:-false}
 VC_ID=validator-1
 VC_NAME='VC 1 - Hub'
 VC_METRICS_ADDRESS=127.0.0.1:8808
@@ -106,8 +120,8 @@ client headings, tables, and graph legends. Names are configured on the hub;
 keep IDs such as `validator-2` stable when renaming a client.
 
 The example defaults to the GHCR image
-`ghcr.io/owlofmoistness/lido-grafana:1.0.0`. It becomes available after pushing
-the `v1.0.0` Git tag and a successful publishing workflow. Branch pushes run
+`ghcr.io/owlofmoistness/lido-grafana:0.3.0`. The control image already contains
+the dashboard and provisioning code. Branch pushes run
 validation only; version-tag pushes publish images. No manually created GitHub
 secrets are required.
 [Local builds and registry details](deployment/README.md#images-from-github-container-registry)
@@ -150,7 +164,7 @@ When adding or removing children later, update the hub's `.env`, run
 ## Repository layout
 
 - `compose.yml` and `.env.example`: deployment entry point and configuration template.
-- `deployment/`: hub/child services, image build, configuration generator, and tests.
+- `deployment/`: image build, configuration generator, deployment guide, and tests.
 - `monitoring/dashboards/`: Grafana dashboard template.
 - `monitoring/`: metric documentation, provisioning, and alternative deployment files.
 - `monitoring/previews/`: mock-data screenshots.

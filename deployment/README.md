@@ -2,7 +2,8 @@
 
 This is the primary deployment for a new installation. Run the root
 `compose.yml` on each Linux server; `.env` selects the role. Requires Docker
-Engine and Docker Compose 2.20+ (Compose `include` support).
+Engine and Docker Compose 2.20+. This Compose file is self-contained; no
+repository checkout or additional deployment files are required.
 
 | Server | HUB | VC_ID | Starts |
 | --- | --- | --- | --- |
@@ -19,23 +20,48 @@ Main and fallback are collected once, not once through each VC server.
 The custom **control image** packages the dashboard, provisioning generator,
 SSH client/supervisor and post-start checker. Grafana, Prometheus and node-exporter
 use their upstream images as separate containers. The GitHub workflow publishes
-the control image to GHCR on version-tag pushes; `.env.example` selects `:1.0.0`.
-It is available only after pushing `v1.0.0` and its workflow succeeding. For local builds,
-set `CONTROL_IMAGE=lido-fleet-control:local` and `CONTROL_PULL_POLICY=build`.
+the control image to GHCR on version-tag pushes; `.env.example` selects `:0.3.0`.
+The exporter and dashboard services use their own upstream images. An image does
+not start sibling containers or need access to the Docker socket; Compose starts
+the services for the selected role.
+
+For local development from a source checkout, build explicitly:
+
+```sh
+docker build -f deployment/Dockerfile -t lido-fleet-control:local .
+```
+
+Then set `CONTROL_IMAGE=lido-fleet-control:local` and
+`CONTROL_PULL_POLICY=never` in `.env`. Production deployments only pull images.
 
 ## Populate the environment files first
 
-Copy the same repository to each machine. In the repository root:
+Save the root `compose.yml` and `.env.example` beside each other on each
+machine, renaming `.env.example` to `.env`. Protect the environment file:
 
 ```sh
-cp .env.example .env
 chmod 600 .env
 ```
 
+Keep these lines together, with `HUB` before the automatic mapping:
+
+```dotenv
+HUB=false
+COMPOSE_PROFILES=${HUB:-false}
+```
+
+Change only `HUB` to `true` on the hub. The automatic mapping activates its
+services with plain `docker compose up -d`; do not remove it or independently
+override `COMPOSE_PROFILES`. Old `.env` files need this new mapping line. The
+Compose file reports a missing mapping rather than silently starting a child.
+The old `deployment/compose.true.yml` and `compose.false.yml` files are no
+longer used.
+
 Edit `.env` on each machine. Use `HUB=true` only on the hub and `HUB=false`
 on the two children. Use lowercase literal values. The children only need
-`HUB` and `NODE_EXPORTER_PORT` for startup; VC_ID/VC_NAME document their
-identities, which must match the hub's CHILDREN list.
+`HUB`, the automatic `COMPOSE_PROFILES` mapping and optionally
+`NODE_EXPORTER_PORT` (default `19103`). Child names and validator metrics
+addresses are configured in the hub's `CHILDREN` list.
 
 On the hub, fill in:
 
@@ -176,8 +202,8 @@ explicitly removed. This project does not manage or stop the validator stack.
 
 ## Images from GitHub Container Registry
 
-The workflow in `.github/workflows/container.yml` validates the public files,
-unit tests, both Compose roles, a real image build, generated configuration and
+The workflow in `.github/workflows/container.yml` validates
+unit tests, both standalone Compose roles, a real image build, generated configuration and
 dashboard queries before publication. It publishes `linux/amd64` and
 `linux/arm64` images using the repository's automatic `GITHUB_TOKEN`. You do not
 need to give Actions any validator credentials, private keys or deployment `.env`.
@@ -191,7 +217,7 @@ need to give Actions any validator credentials, private keys or deployment `.env
 The image name is derived from the repository, lowercased. For this repository:
 
 ```dotenv
-CONTROL_IMAGE=ghcr.io/owlofmoistness/lido-grafana:1.0.0
+CONTROL_IMAGE=ghcr.io/owlofmoistness/lido-grafana:0.3.0
 CONTROL_PULL_POLICY=always
 ```
 
@@ -209,13 +235,14 @@ choose Public if anonymous pulls are desired. Otherwise, authenticate on the
 hub with a token that has read access to the package. Do not add that token to
 the repository or image. See [GitHub's registry documentation](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry).
 
-Distribute the root Compose file, the two role files and `.env.example` together;
+Distribute only the root `compose.yml` and `.env.example` (saved as `.env`);
 the dashboard/config code comes from the image. Children use only the upstream
-exporter image. To publish a release after the initial commit is on main:
+exporter image. This standalone packaging works with control image `0.2.0`;
+it does not require rebuilding the image. To publish a release after the initial commit is on main:
 
 ```sh
-git tag v1.0.0
-git push origin v1.0.0
+git tag v0.3.0
+git push origin v0.3.0
 ```
 
 ## Public/private boundary
@@ -227,14 +254,8 @@ build context allowlists only three source files. The five public screenshots
 use mock data and generic identifiers; review any replacement images before
 adding them.
 
-Before committing, run `python3 scripts/check-public.py`. It checks public
-working files and their staged versions for private paths, common credentials,
-personal home directories, non-example IPs, Ethereum addresses and image
-metadata. An optional `private/publication-denylist.txt` adds local server names
-and domains to the check without publishing the list. CI runs the generic
-checks again before image publication. These checks are guardrails: they do not
-replace review of new screenshots or arbitrary prose, and CI cannot undo a
-secret already pushed to a public repository.
+Review files and screenshots for deployment details and credentials before
+publishing. Local private checks are not part of the distributed runtime or CI.
 
 ## Local validation and limits
 
@@ -245,9 +266,12 @@ python3 -m unittest discover -s deployment/tests -v
 Tests cover endpoint mapping, invalid/duplicate configuration, port collisions,
 SSH forwarding/host-key options, reconnect/shutdown, generated provisioning and
 dashboard membership, and rejection of missing/down/misconfigured scrape targets.
-Compose configuration is validated separately for both roles without a daemon.
+Standalone Compose tests copy only `compose.yml` and `.env` into an empty
+folder and verify both roles, missing-role errors, exporter port overrides,
+private mounts and rejection of empty/example hub passwords. These tests need
+the Docker Compose CLI but not a running daemon.
 Image build/start and actual SSH connectivity require a running Docker Engine;
 they must pass before this deployment is considered live-verified.
 
-References: [Compose include](https://docs.docker.com/reference/compose-file/include/),
+References: [Compose profiles](https://docs.docker.com/compose/how-tos/profiles/),
 [environment interpolation](https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/).
