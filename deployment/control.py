@@ -59,6 +59,12 @@ def settings(env):
     prom_port = port(env.get("PROMETHEUS_PORT", "9092"))
     grafana_port = port(env.get("GRAFANA_PORT", "3200"))
     backend = address(env["BACKEND_ADDRESS"])
+    inventory_enabled = env.get("INVENTORY_ENABLED", "false")
+    if inventory_enabled not in ("true", "false"):
+        raise ValueError("INVENTORY_ENABLED must be true or false")
+    inventory_port = port(env.get("INVENTORY_PORT", "19200"))
+    beacon_apis = [f"http://{backend}:{port(env.get(key, default))}" for key, default in
+                   (("MAIN_BEACON_API_PORT", "5052"), ("FALLBACK_BEACON_API_PORT", "5552"))]
     interval = env.get("SCRAPE_INTERVAL", "30s")
     if not re.fullmatch(r"[1-9][0-9]*s", interval) or int(interval[:-1]) < 15:
         raise ValueError("SCRAPE_INTERVAL must be at least 15s, expressed in seconds")
@@ -72,8 +78,9 @@ def settings(env):
             backends.append((role, component, f"{backend}:{number}", path))
     # Reserve existing monitoring endpoints too, to avoid shadowing loopback
     # addresses or colliding with broadly bound host listeners.
-    occupied = [node_port, prom_port, grafana_port, int(local_vc.rsplit(":", 1)[1])]
+    occupied = [inventory_port, node_port, prom_port, grafana_port, int(local_vc.rsplit(":", 1)[1])]
     occupied += [int(item[2].rsplit(":", 1)[1]) for item in backends]
+    occupied += [int(url.rsplit(":", 1)[1]) for url in beacon_apis]
     if len(set(occupied)) != len(occupied):
         raise ValueError("Local monitoring ports must be distinct")
     children = json.loads(env.get("CHILDREN", "[]"))
@@ -105,7 +112,9 @@ def settings(env):
         })
     return {"own_id": own_id, "own_name": own_name, "local_vc": local_vc,
             "node_port": node_port, "prom_port": prom_port, "grafana_port": grafana_port,
-            "interval": interval, "children": normalized, "backends": backends}
+            "interval": interval, "children": normalized, "backends": backends,
+            "inventory_enabled": inventory_enabled == "true", "inventory_port": inventory_port,
+            "beacon_apis": beacon_apis}
 
 
 def targets(config):
@@ -122,6 +131,9 @@ def targets(config):
         add(child["id"], "validator", "node", f"127.0.0.1:{child['local_port'] + 1}")
     for host, component, target, path in config["backends"]:
         add(host, "backend", component, target, path)
+    if config['inventory_enabled']:
+        result.append({"targets": [f"127.0.0.1:{config['inventory_port']}"], "labels": {
+            "role": "monitoring", "component": "inventory", "__metrics_path__": "/metrics"}})
     return result
 
 
@@ -276,9 +288,9 @@ def check(config):
     for target in targets(config):
         labels = target["labels"]
         matches = [t for t in active if all(t.get("labels", {}).get(key) == labels[key]
-                   for key in ("host", "role", "component"))]
+                   for key in ("host", "role", "component") if key in labels)]
         if len(matches) != 1:
-            print(f"FAIL {labels['host']} / {labels['component']}: expected one target, found {len(matches)}")
+            print(f"FAIL {labels.get('host', 'collector')} / {labels['component']}: expected one target, found {len(matches)}")
             failed = True
         else:
             target_state = matches[0]
@@ -287,7 +299,15 @@ def check(config):
                   and target_state.get("labels", {}).get("job") == labels["component"]
                   and target_state.get("labels", {}).get("instance") == target["targets"][0]
                   and scrape_url.path == labels["__metrics_path__"])
-            print(f"{'OK' if ok else 'FAIL'} {labels['host']} / {labels['component']}: {target_state['health']} {target_state.get('lastError', '')}" + (" (check address/path/job against .env)" if not ok else ""))
+            print(f"{'OK' if ok else 'FAIL'} {labels.get('host', 'collector')} / {labels['component']}: {target_state['health']} {target_state.get('lastError', '')}" + (" (check address/path/job against .env)" if not ok else ""))
+            failed |= not ok
+    if config['inventory_enabled']:
+        expression = 'lido_inventory_success{job="inventory"} == 1 and on(host) (time() - lido_inventory_timestamp_seconds{job="inventory"} < 180)'
+        data = fetch(f"http://127.0.0.1:{config['prom_port']}/api/v1/query?" + urllib.parse.urlencode({'query': expression}))
+        healthy = {item['metric'].get('host') for item in data.get('data', {}).get('result', [])}
+        for ident in [config['own_id']] + [c['id'] for c in config['children']]:
+            ok = data.get('status') == 'success' and ident in healthy
+            print(f"{'OK' if ok else 'FAIL'} {ident} / inventory: " + ('fresh beacon snapshot' if ok else 'missing, failed or stale CSV/beacon lookup'))
             failed |= not ok
     health = fetch(f"http://127.0.0.1:{config['grafana_port']}/api/health")
     grafana_ok = health.get("database") == "ok"
@@ -298,7 +318,7 @@ def check(config):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("mode", choices=("generate", "tunnels", "check"))
+    parser.add_argument("mode", choices=("generate", "tunnels", "inventory", "check"))
     parser.add_argument("--output", type=Path, default=Path("/generated"))
     parser.add_argument("--template", type=Path, default=Path("/app/dashboard.json"))
     args = parser.parse_args()
@@ -306,6 +326,9 @@ def main():
     if args.mode == "generate":
         generate(config, args.output, args.template)
         print(f"Generated configuration for {1 + len(config['children'])} VCs and two shared backends")
+    elif args.mode == "inventory":
+        import inventory
+        inventory.serve(config)
     elif args.mode == "tunnels":
         supervise(config)
     else:

@@ -47,11 +47,16 @@ class StandaloneCompose(unittest.TestCase):
         self.assertEqual(set(child['services']), {'host-exporter'})
         self.assertIn('--web.listen-address=127.0.0.1:19104', child['services']['host-exporter']['command'])
         hub = self.config(template.replace('\nHUB=false\n', '\nHUB=true\n', 1))
-        self.assertEqual(set(hub['services']), {'configure', 'tunnels', 'grafana', 'prometheus', 'host-exporter'})
+        self.assertEqual(set(hub['services']), {'configure', 'tunnels', 'grafana', 'prometheus', 'host-exporter', 'inventory'})
         for name in ('grafana', 'prometheus', 'tunnels'):
             self.assertEqual(hub['services'][name]['depends_on']['configure']['condition'], 'service_completed_successfully')
+        collector = hub['services']['inventory']
+        self.assertEqual(collector['command'], ['inventory'])
+        self.assertTrue(collector['volumes'][0]['read_only'])
+        self.assertEqual(collector['volumes'][0]['target'], '/inventory')
+        self.assertNotIn('GRAFANA_ADMIN_PASSWORD', collector['environment'])
         tunnels = hub['services']['tunnels']
-        self.assertEqual(tunnels['image'], 'ghcr.io/owlofmoistness/lido-grafana:0.3.0')
+        self.assertEqual(tunnels['image'], 'ghcr.io/owlofmoistness/lido-grafana:0.4.0')
         self.assertNotIn('GRAFANA_ADMIN_PASSWORD', tunnels['environment'])
         for mount in tunnels['volumes']:
             self.assertTrue(mount['read_only'])

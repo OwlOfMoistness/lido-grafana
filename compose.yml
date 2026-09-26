@@ -5,7 +5,7 @@ name: lido-fleet
 x-role: ${COMPOSE_PROFILES:?Keep COMPOSE_PROFILES in .env as shown in .env.example}
 
 x-control: &control
-  image: ${CONTROL_IMAGE:-ghcr.io/owlofmoistness/lido-grafana:0.3.0}
+  image: ${CONTROL_IMAGE:-ghcr.io/owlofmoistness/lido-grafana:0.4.0}
   pull_policy: ${CONTROL_PULL_POLICY:-always}
   profiles: ["true"]
   read_only: true
@@ -30,6 +30,10 @@ x-settings: &settings
   FALLBACK_EXECUTION_PATH: ${FALLBACK_EXECUTION_PATH:-/debug/metrics/prometheus}
   SCRAPE_INTERVAL: ${SCRAPE_INTERVAL:-30s}
   CHILDREN: ${CHILDREN:-[]}
+  INVENTORY_ENABLED: ${INVENTORY_ENABLED:-false}
+  INVENTORY_PORT: ${INVENTORY_PORT:-19200}
+  MAIN_BEACON_API_PORT: ${MAIN_BEACON_API_PORT:-5052}
+  FALLBACK_BEACON_API_PORT: ${FALLBACK_BEACON_API_PORT:-5552}
 
 services:
   host-exporter:
@@ -89,6 +93,18 @@ services:
         read_only: true
         bind:
           create_host_path: false
+
+  inventory:
+    <<: *control
+    restart: unless-stopped
+    network_mode: host
+    command: [inventory]
+    environment: *settings
+    volumes:
+      - type: bind
+        source: ${INVENTORY_DIR:-./inventory}
+        target: /inventory
+        read_only: true
 
   prometheus:
     profiles: ["true"]

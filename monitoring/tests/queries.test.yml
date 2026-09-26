@@ -697,6 +697,399 @@
           "exp_samples": []
         }
       ]
+    },
+    {
+      "name": "Inventory healthy",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "up{job=\"inventory\",instance=\"collector\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "up{job=\"validator\",host=\"validator-1\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_inventory_success{job=\"inventory\",instance=\"collector\",host=\"validator-1\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_inventory_timestamp_seconds{job=\"inventory\",instance=\"collector\",host=\"validator-1\"}",
+          "values": "550+0x10"
+        },
+        {
+          "series": "lido_inventory_active_validators{job=\"inventory\",instance=\"collector\",host=\"validator-1\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_inventory_active_balance_eth{job=\"inventory\",instance=\"collector\",host=\"validator-1\"}",
+          "values": "32.25+0x10"
+        },
+        {
+          "series": "up{job=\"validator\",host=\"validator-2\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_inventory_success{job=\"inventory\",instance=\"collector\",host=\"validator-2\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_inventory_timestamp_seconds{job=\"inventory\",instance=\"collector\",host=\"validator-2\"}",
+          "values": "550+0x10"
+        },
+        {
+          "series": "lido_inventory_active_validators{job=\"inventory\",instance=\"collector\",host=\"validator-2\"}",
+          "values": "2+0x10"
+        },
+        {
+          "series": "lido_inventory_active_balance_eth{job=\"inventory\",instance=\"collector\",host=\"validator-2\"}",
+          "values": "64.5+0x10"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "sum((lido_inventory_active_validators{job=\"inventory\",host=~\"validator-1|validator-2\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"validator-1|validator-2\"} < 180) and on() (up{job=\"inventory\"} == 1))) and on() (count((lido_inventory_active_validators{job=\"inventory\",host=~\"validator-1|validator-2\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"validator-1|validator-2\"} < 180) and on() (up{job=\"inventory\"} == 1))) == count(up{job=\"validator\",host=~\"validator-1|validator-2\"})) and on() (min(lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"}) == 1)",
+          "eval_time": "10m",
+          "exp_samples": [
+            {
+              "labels": "{}",
+              "value": 3
+            }
+          ]
+        },
+        {
+          "expr": "sum((lido_inventory_active_balance_eth{job=\"inventory\",host=~\"validator-1|validator-2\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"validator-1|validator-2\"} < 180) and on() (up{job=\"inventory\"} == 1))) and on() (count((lido_inventory_active_balance_eth{job=\"inventory\",host=~\"validator-1|validator-2\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"validator-1|validator-2\"} < 180) and on() (up{job=\"inventory\"} == 1))) == count(up{job=\"validator\",host=~\"validator-1|validator-2\"})) and on() (min(lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"}) == 1)",
+          "eval_time": "10m",
+          "exp_samples": [
+            {
+              "labels": "{}",
+              "value": 96.75
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Inventory zero",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "up{job=\"inventory\",instance=\"collector\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "up{job=\"validator\",host=\"validator-1\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_inventory_success{job=\"inventory\",instance=\"collector\",host=\"validator-1\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_inventory_timestamp_seconds{job=\"inventory\",instance=\"collector\",host=\"validator-1\"}",
+          "values": "550+0x10"
+        },
+        {
+          "series": "lido_inventory_active_validators{job=\"inventory\",instance=\"collector\",host=\"validator-1\"}",
+          "values": "0+0x10"
+        },
+        {
+          "series": "lido_inventory_active_balance_eth{job=\"inventory\",instance=\"collector\",host=\"validator-1\"}",
+          "values": "0+0x10"
+        },
+        {
+          "series": "up{job=\"validator\",host=\"validator-2\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_inventory_success{job=\"inventory\",instance=\"collector\",host=\"validator-2\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_inventory_timestamp_seconds{job=\"inventory\",instance=\"collector\",host=\"validator-2\"}",
+          "values": "550+0x10"
+        },
+        {
+          "series": "lido_inventory_active_validators{job=\"inventory\",instance=\"collector\",host=\"validator-2\"}",
+          "values": "0+0x10"
+        },
+        {
+          "series": "lido_inventory_active_balance_eth{job=\"inventory\",instance=\"collector\",host=\"validator-2\"}",
+          "values": "0+0x10"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "sum((lido_inventory_active_validators{job=\"inventory\",host=~\"validator-1|validator-2\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"validator-1|validator-2\"} < 180) and on() (up{job=\"inventory\"} == 1))) and on() (count((lido_inventory_active_validators{job=\"inventory\",host=~\"validator-1|validator-2\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"validator-1|validator-2\"} < 180) and on() (up{job=\"inventory\"} == 1))) == count(up{job=\"validator\",host=~\"validator-1|validator-2\"})) and on() (min(lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"}) == 1)",
+          "eval_time": "10m",
+          "exp_samples": [
+            {
+              "labels": "{}",
+              "value": 0
+            }
+          ]
+        },
+        {
+          "expr": "sum((lido_inventory_active_balance_eth{job=\"inventory\",host=~\"validator-1|validator-2\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"validator-1|validator-2\"} < 180) and on() (up{job=\"inventory\"} == 1))) and on() (count((lido_inventory_active_balance_eth{job=\"inventory\",host=~\"validator-1|validator-2\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"validator-1|validator-2\"} < 180) and on() (up{job=\"inventory\"} == 1))) == count(up{job=\"validator\",host=~\"validator-1|validator-2\"})) and on() (min(lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"}) == 1)",
+          "eval_time": "10m",
+          "exp_samples": [
+            {
+              "labels": "{}",
+              "value": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Inventory failed",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "up{job=\"inventory\",instance=\"collector\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "up{job=\"validator\",host=\"validator-1\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_inventory_success{job=\"inventory\",instance=\"collector\",host=\"validator-1\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_inventory_timestamp_seconds{job=\"inventory\",instance=\"collector\",host=\"validator-1\"}",
+          "values": "550+0x10"
+        },
+        {
+          "series": "lido_inventory_active_validators{job=\"inventory\",instance=\"collector\",host=\"validator-1\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_inventory_active_balance_eth{job=\"inventory\",instance=\"collector\",host=\"validator-1\"}",
+          "values": "32.25+0x10"
+        },
+        {
+          "series": "up{job=\"validator\",host=\"validator-2\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_inventory_success{job=\"inventory\",instance=\"collector\",host=\"validator-2\"}",
+          "values": "0+0x10"
+        },
+        {
+          "series": "lido_inventory_timestamp_seconds{job=\"inventory\",instance=\"collector\",host=\"validator-2\"}",
+          "values": "550+0x10"
+        },
+        {
+          "series": "lido_inventory_active_validators{job=\"inventory\",instance=\"collector\",host=\"validator-2\"}",
+          "values": "2+0x10"
+        },
+        {
+          "series": "lido_inventory_active_balance_eth{job=\"inventory\",instance=\"collector\",host=\"validator-2\"}",
+          "values": "64.5+0x10"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "sum((lido_inventory_active_validators{job=\"inventory\",host=~\"validator-1|validator-2\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"validator-1|validator-2\"} < 180) and on() (up{job=\"inventory\"} == 1))) and on() (count((lido_inventory_active_validators{job=\"inventory\",host=~\"validator-1|validator-2\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"validator-1|validator-2\"} < 180) and on() (up{job=\"inventory\"} == 1))) == count(up{job=\"validator\",host=~\"validator-1|validator-2\"})) and on() (min(lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"}) == 1)",
+          "eval_time": "10m",
+          "exp_samples": []
+        },
+        {
+          "expr": "sum((lido_inventory_active_balance_eth{job=\"inventory\",host=~\"validator-1|validator-2\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"validator-1|validator-2\"} < 180) and on() (up{job=\"inventory\"} == 1))) and on() (count((lido_inventory_active_balance_eth{job=\"inventory\",host=~\"validator-1|validator-2\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"validator-1|validator-2\"} < 180) and on() (up{job=\"inventory\"} == 1))) == count(up{job=\"validator\",host=~\"validator-1|validator-2\"})) and on() (min(lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"}) == 1)",
+          "eval_time": "10m",
+          "exp_samples": []
+        }
+      ]
+    },
+    {
+      "name": "Inventory stale",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "up{job=\"inventory\",instance=\"collector\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "up{job=\"validator\",host=\"validator-1\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_inventory_success{job=\"inventory\",instance=\"collector\",host=\"validator-1\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_inventory_timestamp_seconds{job=\"inventory\",instance=\"collector\",host=\"validator-1\"}",
+          "values": "550+0x10"
+        },
+        {
+          "series": "lido_inventory_active_validators{job=\"inventory\",instance=\"collector\",host=\"validator-1\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_inventory_active_balance_eth{job=\"inventory\",instance=\"collector\",host=\"validator-1\"}",
+          "values": "32.25+0x10"
+        },
+        {
+          "series": "up{job=\"validator\",host=\"validator-2\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_inventory_success{job=\"inventory\",instance=\"collector\",host=\"validator-2\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_inventory_timestamp_seconds{job=\"inventory\",instance=\"collector\",host=\"validator-2\"}",
+          "values": "0+0x10"
+        },
+        {
+          "series": "lido_inventory_active_validators{job=\"inventory\",instance=\"collector\",host=\"validator-2\"}",
+          "values": "2+0x10"
+        },
+        {
+          "series": "lido_inventory_active_balance_eth{job=\"inventory\",instance=\"collector\",host=\"validator-2\"}",
+          "values": "64.5+0x10"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "sum((lido_inventory_active_validators{job=\"inventory\",host=~\"validator-1|validator-2\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"validator-1|validator-2\"} < 180) and on() (up{job=\"inventory\"} == 1))) and on() (count((lido_inventory_active_validators{job=\"inventory\",host=~\"validator-1|validator-2\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"validator-1|validator-2\"} < 180) and on() (up{job=\"inventory\"} == 1))) == count(up{job=\"validator\",host=~\"validator-1|validator-2\"})) and on() (min(lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"}) == 1)",
+          "eval_time": "10m",
+          "exp_samples": []
+        },
+        {
+          "expr": "sum((lido_inventory_active_balance_eth{job=\"inventory\",host=~\"validator-1|validator-2\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"validator-1|validator-2\"} < 180) and on() (up{job=\"inventory\"} == 1))) and on() (count((lido_inventory_active_balance_eth{job=\"inventory\",host=~\"validator-1|validator-2\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"validator-1|validator-2\"} < 180) and on() (up{job=\"inventory\"} == 1))) == count(up{job=\"validator\",host=~\"validator-1|validator-2\"})) and on() (min(lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"}) == 1)",
+          "eval_time": "10m",
+          "exp_samples": []
+        }
+      ]
+    },
+    {
+      "name": "Inventory collector_down",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "up{job=\"inventory\",instance=\"collector\"}",
+          "values": "0+0x10"
+        },
+        {
+          "series": "up{job=\"validator\",host=\"validator-1\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_inventory_success{job=\"inventory\",instance=\"collector\",host=\"validator-1\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_inventory_timestamp_seconds{job=\"inventory\",instance=\"collector\",host=\"validator-1\"}",
+          "values": "550+0x10"
+        },
+        {
+          "series": "lido_inventory_active_validators{job=\"inventory\",instance=\"collector\",host=\"validator-1\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_inventory_active_balance_eth{job=\"inventory\",instance=\"collector\",host=\"validator-1\"}",
+          "values": "32.25+0x10"
+        },
+        {
+          "series": "up{job=\"validator\",host=\"validator-2\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_inventory_success{job=\"inventory\",instance=\"collector\",host=\"validator-2\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_inventory_timestamp_seconds{job=\"inventory\",instance=\"collector\",host=\"validator-2\"}",
+          "values": "550+0x10"
+        },
+        {
+          "series": "lido_inventory_active_validators{job=\"inventory\",instance=\"collector\",host=\"validator-2\"}",
+          "values": "2+0x10"
+        },
+        {
+          "series": "lido_inventory_active_balance_eth{job=\"inventory\",instance=\"collector\",host=\"validator-2\"}",
+          "values": "64.5+0x10"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "sum((lido_inventory_active_validators{job=\"inventory\",host=~\"validator-1|validator-2\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"validator-1|validator-2\"} < 180) and on() (up{job=\"inventory\"} == 1))) and on() (count((lido_inventory_active_validators{job=\"inventory\",host=~\"validator-1|validator-2\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"validator-1|validator-2\"} < 180) and on() (up{job=\"inventory\"} == 1))) == count(up{job=\"validator\",host=~\"validator-1|validator-2\"})) and on() (min(lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"}) == 1)",
+          "eval_time": "10m",
+          "exp_samples": []
+        },
+        {
+          "expr": "sum((lido_inventory_active_balance_eth{job=\"inventory\",host=~\"validator-1|validator-2\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"validator-1|validator-2\"} < 180) and on() (up{job=\"inventory\"} == 1))) and on() (count((lido_inventory_active_balance_eth{job=\"inventory\",host=~\"validator-1|validator-2\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"validator-1|validator-2\"} < 180) and on() (up{job=\"inventory\"} == 1))) == count(up{job=\"validator\",host=~\"validator-1|validator-2\"})) and on() (min(lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"}) == 1)",
+          "eval_time": "10m",
+          "exp_samples": []
+        }
+      ]
+    },
+    {
+      "name": "Inventory missing_balance",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "up{job=\"inventory\",instance=\"collector\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "up{job=\"validator\",host=\"validator-1\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_inventory_success{job=\"inventory\",instance=\"collector\",host=\"validator-1\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_inventory_timestamp_seconds{job=\"inventory\",instance=\"collector\",host=\"validator-1\"}",
+          "values": "550+0x10"
+        },
+        {
+          "series": "lido_inventory_active_validators{job=\"inventory\",instance=\"collector\",host=\"validator-1\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_inventory_active_balance_eth{job=\"inventory\",instance=\"collector\",host=\"validator-1\"}",
+          "values": "32.25+0x10"
+        },
+        {
+          "series": "up{job=\"validator\",host=\"validator-2\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_inventory_success{job=\"inventory\",instance=\"collector\",host=\"validator-2\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_inventory_timestamp_seconds{job=\"inventory\",instance=\"collector\",host=\"validator-2\"}",
+          "values": "550+0x10"
+        },
+        {
+          "series": "lido_inventory_active_validators{job=\"inventory\",instance=\"collector\",host=\"validator-2\"}",
+          "values": "2+0x10"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "sum((lido_inventory_active_validators{job=\"inventory\",host=~\"validator-1|validator-2\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"validator-1|validator-2\"} < 180) and on() (up{job=\"inventory\"} == 1))) and on() (count((lido_inventory_active_validators{job=\"inventory\",host=~\"validator-1|validator-2\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"validator-1|validator-2\"} < 180) and on() (up{job=\"inventory\"} == 1))) == count(up{job=\"validator\",host=~\"validator-1|validator-2\"})) and on() (min(lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"}) == 1)",
+          "eval_time": "10m",
+          "exp_samples": [
+            {
+              "labels": "{}",
+              "value": 3
+            }
+          ]
+        },
+        {
+          "expr": "sum((lido_inventory_active_balance_eth{job=\"inventory\",host=~\"validator-1|validator-2\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"validator-1|validator-2\"} < 180) and on() (up{job=\"inventory\"} == 1))) and on() (count((lido_inventory_active_balance_eth{job=\"inventory\",host=~\"validator-1|validator-2\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"validator-1|validator-2\"} < 180) and on() (up{job=\"inventory\"} == 1))) == count(up{job=\"validator\",host=~\"validator-1|validator-2\"})) and on() (min(lido_inventory_success{job=\"inventory\",host=~\"validator-1|validator-2\"}) == 1)",
+          "eval_time": "10m",
+          "exp_samples": []
+        }
+      ]
     }
   ]
 }

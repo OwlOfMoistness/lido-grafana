@@ -24,6 +24,36 @@ def environment():
 
 
 class Configuration(unittest.TestCase):
+    def test_inventory_target_preserves_exported_client_labels(self):
+        env = environment()
+        env['INVENTORY_ENABLED'] = 'true'
+        config = control.settings(env)
+        target = control.targets(config)[-1]
+        self.assertEqual(target['targets'], ['127.0.0.1:19200'])
+        self.assertEqual(target['labels']['component'], 'inventory')
+        self.assertNotIn('host', target['labels'])  # Must not override child host labels.
+        self.assertEqual(config['beacon_apis'], ['http://192.0.2.10:5052', 'http://192.0.2.10:5552'])
+        for setting, value in [('INVENTORY_ENABLED','yes'), ('INVENTORY_PORT','9092')]:
+            with self.subTest(setting=setting), self.assertRaises(ValueError):
+                control.settings({**env, setting:value})
+
+    def test_inventory_check_requires_each_clients_fresh_snapshot(self):
+        config = control.settings({**environment(), 'INVENTORY_ENABLED':'true'})
+        active=[]
+        for target in control.targets(config):
+            labels={k:v for k,v in target['labels'].items() if not k.startswith('__')}
+            labels.update(job=labels['component'], instance=target['targets'][0])
+            active.append({'labels':labels,'health':'up','lastError':'',
+                           'scrapeUrl':'http://'+target['targets'][0]+target['labels']['__metrics_path__']})
+        for count in (0,2,3):
+            opener=MagicMock()
+            opener.open.side_effect=[io.BytesIO(json.dumps(data).encode()) for data in [
+                {'status':'success','data':{'activeTargets':active}},
+                {'status':'success','data':{'result':[{'metric':{'host':f'validator-{i}'}} for i in range(1,count+1)]}},
+                {'database':'ok'}]]
+            with self.subTest(count=count), patch.object(control.urllib.request,'build_opener',return_value=opener),contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(control.check(config), 0 if count==3 else 1)
+
     def test_exact_targets_and_geth_path(self):
         config = control.settings(environment())
         targets = control.targets(config)

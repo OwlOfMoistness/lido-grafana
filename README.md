@@ -1,11 +1,12 @@
 # Lido Grafana
 
 Monitor a fleet of Nimbus validator clients from one Grafana dashboard: validator
-activity, proposals, attestation accuracy, peers, CPU, memory, and storage.
+activity, proposals, attestation accuracy, active validator counts, ETH balances,
+peers, CPU, memory, and storage.
 Shared Nimbus beacon nodes and Nethermind/Geth execution clients have their own
 sections alongside the validator-client overviews.
 
-![Fleet overview with synthetic data](monitoring/previews/50-validators/01-fleet-overview.jpg)
+![Fleet overview with synthetic data](monitoring/previews/active-validators/01-fleet-overview.jpg)
 
 ## How it works
 
@@ -120,12 +121,48 @@ client headings, tables, and graph legends. Names are configured on the hub;
 keep IDs such as `validator-2` stable when renaming a client.
 
 The example defaults to the GHCR image
-`ghcr.io/owlofmoistness/lido-grafana:0.3.0`. The control image already contains
+`ghcr.io/owlofmoistness/lido-grafana:0.4.0`. The control image already contains
 the dashboard and provisioning code. Branch pushes run
 validation only; version-tag pushes publish images. No manually created GitHub
 secrets are required.
 [Local builds and registry details](deployment/README.md#images-from-github-container-registry)
 are covered in the deployment guide.
+
+### Optional: active validators and ETH balances
+
+On the hub, create an `inventory` directory with one file per configured client:
+`validator-1.csv`, `validator-2.csv`, and so on. Each file contains **one full
+validator public key per line**, including the `0x` prefix, with no header.
+Use the stable client IDs for filenames, regardless of display names. Include
+pending keys too; never put signing keys or keystores in this directory.
+
+Set these values in the hub's `.env`:
+
+```dotenv
+INVENTORY_ENABLED=true
+INVENTORY_DIR=./inventory
+MAIN_BEACON_API_PORT=5052
+FALLBACK_BEACON_API_PORT=5552
+```
+
+These are beacon **REST API** ports on `BACKEND_ADDRESS`, separate from beacon
+metrics. The collector uses your existing connections and does not alter them.
+It reads the CSV files every minute, queries the main beacon node, and retries
+against the fallback if necessary. Children need no additional configuration.
+Files must be readable by the container user; the mount is read-only.
+
+**Active validators** includes active ongoing, exiting and slashed validators
+until their on-chain exit. **Active balance** is their actual consensus balance,
+including consensus rewards; it is not effective balance or execution-layer
+rewards. The supplied CSV defines membership—it is not synchronized automatically
+with loaded keys. Keep it updated when moving or adding validators.
+
+Missing/invalid CSVs, duplicate keys, failed lookups and stale data produce
+**No data**, rather than a misleading partial fleet total. An empty CSV is an
+explicit zero-key inventory. Keys not yet present in the beacon state are counted
+as unknown and excluded from the active count. See the
+[inventory guide](deployment/INVENTORY.md) for checks and upgrade instructions.
+With inventory disabled, the remaining dashboard works normally.
 
 ### 3. Start and check
 
@@ -159,6 +196,7 @@ When adding or removing children later, update the hub's `.env`, run
 - [Metric guide](monitoring/README.md): what the dashboard measures and its limitations.
 - [Reuse existing Grafana/Prometheus](monitoring/REUSE-EXISTING.md).
 - [Host storage setup](monitoring/STORAGE.md).
+- [Active-validator previews](monitoring/previews/active-validators/README.md): proposed layout rendered with mock data.
 - [Screenshot gallery](monitoring/previews/50-validators/README.md): 50 synthetic validators.
 
 ## Repository layout

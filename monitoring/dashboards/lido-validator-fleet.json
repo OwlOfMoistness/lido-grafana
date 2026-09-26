@@ -2,7 +2,7 @@
   "id": null,
   "uid": "lido-validator-fleet",
   "title": "Lido \u00b7 Validator fleet",
-  "description": "Three Nimbus validator instances with shared main and fallback Nethermind or Geth execution clients and Nimbus beacon nodes. Loaded keys and successful submissions are distinguished from on-chain state. See monitoring/README.md for metric semantics and deployment.",
+  "description": "Nimbus validator clients with shared main and fallback Nethermind or Geth execution clients and Nimbus beacon nodes. Loaded keys and successful submissions are distinguished from on-chain state. See monitoring/README.md for metric semantics and deployment.",
   "tags": [
     "lido",
     "nimbus",
@@ -11,7 +11,7 @@
   ],
   "timezone": "browser",
   "schemaVersion": 38,
-  "version": 7,
+  "version": 8,
   "editable": true,
   "graphTooltip": 1,
   "refresh": "30s",
@@ -276,6 +276,186 @@
       ]
     },
     {
+      "id": 41,
+      "type": "stat",
+      "title": "Active validators",
+      "description": "Latest on-chain state for public keys in the CSV inventory; not proof of duty success or automatic discovery of loaded keys. Active includes ongoing, exiting and slashed validators until exit. No data when disabled, missing, failed or older than 180 seconds. Fleet totals require every selected client. Pending, exited and unknown keys are excluded.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 1,
+        "w": 3,
+        "h": 2
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "noValue": "No data",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "last"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "text": {
+          "valueSize": 30
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "sum((lido_inventory_active_validators{job=\"inventory\",host=~\"${validator:regex}\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"${validator:regex}\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"${validator:regex}\"} < 180) and on() (up{job=\"inventory\"} == 1))) and on() (count((lido_inventory_active_validators{job=\"inventory\",host=~\"${validator:regex}\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"${validator:regex}\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"${validator:regex}\"} < 180) and on() (up{job=\"inventory\"} == 1))) == count(up{job=\"validator\",host=~\"${validator:regex}\"})) and on() (min(lido_inventory_success{job=\"inventory\",host=~\"${validator:regex}\"}) == 1)",
+          "editorMode": "code",
+          "legendFormat": "Active validators",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "type": "stat",
+      "title": "Active balance",
+      "description": "Latest on-chain state for public keys in the CSV inventory; not proof of duty success or automatic discovery of loaded keys. Active includes ongoing, exiting and slashed validators until exit. Actual consensus balance of active validators, including accrued rewards; not effective balance, execution rewards or keys multiplied by 32 ETH. No data when disabled, missing, failed or older than 180 seconds. Fleet totals require every selected client. Pending, exited and unknown keys are excluded.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 7,
+        "y": 1,
+        "w": 4,
+        "h": 2
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: ETH",
+          "noValue": "No data",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "last"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "text": {
+          "valueSize": 30
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "sum((lido_inventory_active_balance_eth{job=\"inventory\",host=~\"${validator:regex}\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"${validator:regex}\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"${validator:regex}\"} < 180) and on() (up{job=\"inventory\"} == 1))) and on() (count((lido_inventory_active_balance_eth{job=\"inventory\",host=~\"${validator:regex}\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"${validator:regex}\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"${validator:regex}\"} < 180) and on() (up{job=\"inventory\"} == 1))) == count(up{job=\"validator\",host=~\"${validator:regex}\"})) and on() (min(lido_inventory_success{job=\"inventory\",host=~\"${validator:regex}\"}) == 1)",
+          "editorMode": "code",
+          "legendFormat": "Active balance",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
       "id": 4,
       "type": "stat",
       "title": "Activity totals",
@@ -285,9 +465,9 @@
         "uid": "lido-prometheus"
       },
       "gridPos": {
-        "x": 4,
+        "x": 11,
         "y": 1,
-        "w": 10,
+        "w": 7,
         "h": 2
       },
       "fieldConfig": {
@@ -387,9 +567,9 @@
         "uid": "lido-prometheus"
       },
       "gridPos": {
-        "x": 14,
+        "x": 18,
         "y": 1,
-        "w": 10,
+        "w": 6,
         "h": 2
       },
       "fieldConfig": {
@@ -545,7 +725,7 @@
           "custom": {
             "drawStyle": "line",
             "lineInterpolation": "linear",
-            "lineWidth": 2,
+            "lineWidth": 1,
             "fillOpacity": 8,
             "showPoints": "never",
             "spanNulls": false,
@@ -808,7 +988,7 @@
           "custom": {
             "drawStyle": "line",
             "lineInterpolation": "linear",
-            "lineWidth": 2,
+            "lineWidth": 1,
             "fillOpacity": 8,
             "showPoints": "never",
             "spanNulls": false,
@@ -1000,7 +1180,7 @@
       "id": 38,
       "type": "table",
       "title": "Validator clients \u00b7 activity totals for selected period",
-      "description": "Compare all selected validator clients. Metrics Up means the endpoint responds, not proof of successful duties. Loaded keys are attached keys, not on-chain active count. Attestations/proposals are successful submissions over the selected time range. Good links counts Nimbus endpoints classified good; it does not identify which backend is active. Missing values remain blank (\u2014). Expand client details below for history and other connection states.",
+      "description": "Compare all selected validator clients. Metrics Up means the endpoint responds, not proof of successful duties. Loaded keys are attached keys, not on-chain active count. Attestations/proposals are successful submissions over the selected time range. Good links counts Nimbus endpoints classified good; it does not identify which backend is active. Missing values remain blank (\u2014). Expand client details below for history and other connection states. Active and Active ETH come from the supplied CSV keys, independent of the loaded-key count. Missing or stale inventory lookups stay blank. Active ETH is actual consensus balance, not effective balance.",
       "datasource": {
         "type": "prometheus",
         "uid": "lido-prometheus"
@@ -1107,6 +1287,30 @@
           "range": false,
           "format": "table",
           "editorMode": "code"
+        },
+        {
+          "refId": "I",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "max by(host) ((lido_inventory_active_validators{job=\"inventory\",host=~\"${validator:regex}\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"${validator:regex}\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"${validator:regex}\"} < 180) and on() (up{job=\"inventory\"} == 1)))",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code"
+        },
+        {
+          "refId": "J",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "max by(host) ((lido_inventory_active_balance_eth{job=\"inventory\",host=~\"${validator:regex}\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"${validator:regex}\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"${validator:regex}\"} < 180) and on() (up{job=\"inventory\"} == 1)))",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code"
         }
       ],
       "transformations": [
@@ -1130,7 +1334,9 @@
                 "Value #E",
                 "Value #F",
                 "Value #G",
-                "Value #H"
+                "Value #H",
+                "Value #I",
+                "Value #J"
               ]
             }
           }
@@ -1142,12 +1348,14 @@
               "host": 0,
               "Value #A": 1,
               "Value #B": 2,
-              "Value #C": 3,
-              "Value #D": 4,
-              "Value #E": 5,
-              "Value #F": 6,
-              "Value #G": 7,
-              "Value #H": 8
+              "Value #I": 3,
+              "Value #J": 4,
+              "Value #C": 5,
+              "Value #D": 6,
+              "Value #E": 7,
+              "Value #F": 8,
+              "Value #G": 9,
+              "Value #H": 10
             },
             "renameByName": {
               "Value #A": "VC metrics",
@@ -1158,7 +1366,9 @@
               "Value #F": "CPU",
               "Value #G": "Host RAM",
               "Value #H": "Good links",
-              "host": "Instance"
+              "host": "Instance",
+              "Value #I": "Active",
+              "Value #J": "Active ETH"
             },
             "excludeByName": {}
           }
@@ -1377,6 +1587,38 @@
                     }
                   }
                 ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Active"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Active ETH"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 2
               }
             ]
           }
@@ -1870,7 +2112,7 @@
       "gridPos": {
         "x": 0,
         "y": 20,
-        "w": 4,
+        "w": 3,
         "h": 3
       },
       "fieldConfig": {
@@ -1987,7 +2229,7 @@
         "textMode": "value_and_name",
         "text": {
           "titleSize": 12,
-          "valueSize": 28
+          "valueSize": 25
         }
       },
       "targets": [
@@ -2018,6 +2260,186 @@
       ]
     },
     {
+      "id": 43,
+      "type": "stat",
+      "title": "Active validators",
+      "description": "Latest on-chain state for public keys in the CSV inventory; not proof of duty success or automatic discovery of loaded keys. Active includes ongoing, exiting and slashed validators until exit. No data when disabled, missing, failed or older than 180 seconds. Fleet totals require every selected client. Pending, exited and unknown keys are excluded.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 3,
+        "y": 20,
+        "w": 3,
+        "h": 3
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "noValue": "No data",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "last"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "text": {
+          "valueSize": 30
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "(lido_inventory_active_validators{job=\"inventory\",host=~\"${validator:regex}\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"${validator:regex}\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"${validator:regex}\"} < 180) and on() (up{job=\"inventory\"} == 1))",
+          "editorMode": "code",
+          "legendFormat": "Active validators",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "type": "stat",
+      "title": "Active balance",
+      "description": "Latest on-chain state for public keys in the CSV inventory; not proof of duty success or automatic discovery of loaded keys. Active includes ongoing, exiting and slashed validators until exit. Actual consensus balance of active validators, including accrued rewards; not effective balance, execution rewards or keys multiplied by 32 ETH. No data when disabled, missing, failed or older than 180 seconds. Fleet totals require every selected client. Pending, exited and unknown keys are excluded.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 20,
+        "w": 4,
+        "h": 3
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: ETH",
+          "noValue": "No data",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "No data",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "last"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "text": {
+          "valueSize": 30
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          },
+          "expr": "(lido_inventory_active_balance_eth{job=\"inventory\",host=~\"${validator:regex}\"} and on(host) (lido_inventory_success{job=\"inventory\",host=~\"${validator:regex}\"} == 1) and on(host) (time() - lido_inventory_timestamp_seconds{job=\"inventory\",host=~\"${validator:regex}\"} < 180) and on() (up{job=\"inventory\"} == 1))",
+          "editorMode": "code",
+          "legendFormat": "Active balance",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
       "id": 12,
       "type": "stat",
       "title": "Activity \u00b7 selected period",
@@ -2027,9 +2449,9 @@
         "uid": "lido-prometheus"
       },
       "gridPos": {
-        "x": 4,
+        "x": 10,
         "y": 20,
-        "w": 6,
+        "w": 4,
         "h": 3
       },
       "fieldConfig": {
@@ -2089,7 +2511,7 @@
         "textMode": "value_and_name",
         "text": {
           "titleSize": 12,
-          "valueSize": 28
+          "valueSize": 25
         }
       },
       "targets": [
@@ -2129,9 +2551,9 @@
         "uid": "lido-prometheus"
       },
       "gridPos": {
-        "x": 10,
+        "x": 14,
         "y": 20,
-        "w": 4,
+        "w": 3,
         "h": 3
       },
       "fieldConfig": {
@@ -2227,7 +2649,7 @@
         "justifyMode": "auto",
         "textMode": "auto",
         "text": {
-          "valueSize": 30
+          "valueSize": 25
         }
       },
       "targets": [
@@ -2255,9 +2677,9 @@
         "uid": "lido-prometheus"
       },
       "gridPos": {
-        "x": 14,
+        "x": 17,
         "y": 20,
-        "w": 6,
+        "w": 4,
         "h": 3
       },
       "fieldConfig": {
@@ -2350,7 +2772,7 @@
         "textMode": "value_and_name",
         "text": {
           "titleSize": 12,
-          "valueSize": 28
+          "valueSize": 25
         }
       },
       "targets": [
@@ -2390,9 +2812,9 @@
         "uid": "lido-prometheus"
       },
       "gridPos": {
-        "x": 20,
+        "x": 21,
         "y": 20,
-        "w": 4,
+        "w": 3,
         "h": 3
       },
       "fieldConfig": {
@@ -2498,7 +2920,7 @@
         "textMode": "value_and_name",
         "text": {
           "titleSize": 12,
-          "valueSize": 28
+          "valueSize": 25
         }
       },
       "targets": [
@@ -2528,8 +2950,8 @@
       "gridPos": {
         "x": 0,
         "y": 23,
-        "w": 10,
-        "h": 6
+        "w": 12,
+        "h": 7
       },
       "fieldConfig": {
         "defaults": {
@@ -2572,7 +2994,7 @@
           "custom": {
             "drawStyle": "line",
             "lineInterpolation": "linear",
-            "lineWidth": 2,
+            "lineWidth": 1,
             "fillOpacity": 8,
             "showPoints": "never",
             "spanNulls": false,
@@ -2709,10 +3131,10 @@
         "uid": "lido-prometheus"
       },
       "gridPos": {
-        "x": 10,
+        "x": 12,
         "y": 23,
-        "w": 8,
-        "h": 6
+        "w": 7,
+        "h": 7
       },
       "fieldConfig": {
         "defaults": {
@@ -2757,7 +3179,7 @@
           "custom": {
             "drawStyle": "line",
             "lineInterpolation": "linear",
-            "lineWidth": 2,
+            "lineWidth": 1,
             "fillOpacity": 8,
             "showPoints": "never",
             "spanNulls": false,
@@ -2854,10 +3276,10 @@
         "uid": "lido-prometheus"
       },
       "gridPos": {
-        "x": 18,
+        "x": 19,
         "y": 23,
-        "w": 6,
-        "h": 6
+        "w": 5,
+        "h": 7
       },
       "fieldConfig": {
         "defaults": {
@@ -2900,7 +3322,7 @@
           "custom": {
             "drawStyle": "line",
             "lineInterpolation": "linear",
-            "lineWidth": 2,
+            "lineWidth": 1,
             "fillOpacity": 8,
             "showPoints": "never",
             "spanNulls": false,
@@ -2998,7 +3420,7 @@
       "panels": [],
       "gridPos": {
         "x": 0,
-        "y": 29,
+        "y": 30,
         "w": 24,
         "h": 1
       },
@@ -3015,7 +3437,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 30,
+        "y": 31,
         "w": 4,
         "h": 3
       },
@@ -3146,7 +3568,7 @@
       },
       "gridPos": {
         "x": 4,
-        "y": 30,
+        "y": 31,
         "w": 4,
         "h": 3
       },
@@ -3279,7 +3701,7 @@
       },
       "gridPos": {
         "x": 8,
-        "y": 30,
+        "y": 31,
         "w": 5,
         "h": 3
       },
@@ -3412,7 +3834,7 @@
       },
       "gridPos": {
         "x": 13,
-        "y": 30,
+        "y": 31,
         "w": 4,
         "h": 3
       },
@@ -3547,7 +3969,7 @@
       },
       "gridPos": {
         "x": 17,
-        "y": 30,
+        "y": 31,
         "w": 7,
         "h": 3
       },
@@ -3661,7 +4083,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 33,
+        "y": 34,
         "w": 5,
         "h": 6
       },
@@ -3708,7 +4130,7 @@
           "custom": {
             "drawStyle": "line",
             "lineInterpolation": "linear",
-            "lineWidth": 2,
+            "lineWidth": 1,
             "fillOpacity": 8,
             "showPoints": "never",
             "spanNulls": false,
@@ -3786,7 +4208,7 @@
       },
       "gridPos": {
         "x": 5,
-        "y": 33,
+        "y": 34,
         "w": 9,
         "h": 6
       },
@@ -3831,7 +4253,7 @@
           "custom": {
             "drawStyle": "line",
             "lineInterpolation": "linear",
-            "lineWidth": 2,
+            "lineWidth": 1,
             "fillOpacity": 8,
             "showPoints": "never",
             "spanNulls": false,
@@ -3929,7 +4351,7 @@
       },
       "gridPos": {
         "x": 14,
-        "y": 33,
+        "y": 34,
         "w": 10,
         "h": 6
       },
@@ -3974,7 +4396,7 @@
           "custom": {
             "drawStyle": "line",
             "lineInterpolation": "linear",
-            "lineWidth": 2,
+            "lineWidth": 1,
             "fillOpacity": 8,
             "showPoints": "never",
             "spanNulls": false,
@@ -4078,7 +4500,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 40,
+            "y": 41,
             "w": 24,
             "h": 6
           },
@@ -4125,7 +4547,7 @@
               "custom": {
                 "drawStyle": "line",
                 "lineInterpolation": "linear",
-                "lineWidth": 2,
+                "lineWidth": 1,
                 "fillOpacity": 8,
                 "showPoints": "never",
                 "spanNulls": false,
@@ -4181,7 +4603,7 @@
       ],
       "gridPos": {
         "x": 0,
-        "y": 39,
+        "y": 40,
         "w": 24,
         "h": 1
       }

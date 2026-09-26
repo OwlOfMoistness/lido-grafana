@@ -7,7 +7,7 @@ repository checkout or additional deployment files are required.
 
 | Server | HUB | VC_ID | Starts |
 | --- | --- | --- | --- |
-| the hub | true | validator-1 | Grafana, Prometheus, SSH forwards, host exporter |
+| the hub | true | validator-1 | Grafana, Prometheus, SSH forwards, host exporter, optional inventory collector |
 | child 2 | false | validator-2 | Host exporter |
 | child 3 | false | validator-3 | Host exporter |
 
@@ -18,9 +18,9 @@ and the shared backends through its existing host-level tunnel listeners.
 Main and fallback are collected once, not once through each VC server.
 
 The custom **control image** packages the dashboard, provisioning generator,
-SSH client/supervisor and post-start checker. Grafana, Prometheus and node-exporter
+SSH client/supervisor, CSV inventory collector and post-start checker. Grafana, Prometheus and node-exporter
 use their upstream images as separate containers. The GitHub workflow publishes
-the control image to GHCR on version-tag pushes; `.env.example` selects `:0.3.0`.
+the control image to GHCR on version-tag pushes; `.env.example` selects `:0.4.0`.
 The exporter and dashboard services use their own upstream images. An image does
 not start sibling containers or need access to the Docker socket; Compose starts
 the services for the selected role.
@@ -33,6 +33,10 @@ docker build -f deployment/Dockerfile -t lido-fleet-control:local .
 
 Then set `CONTROL_IMAGE=lido-fleet-control:local` and
 `CONTROL_PULL_POLICY=never` in `.env`. Production deployments only pull images.
+
+For active validator counts and consensus ETH balances, see the optional
+[CSV inventory setup and upgrade guide](INVENTORY.md). It uses existing beacon
+REST connections; no child or validator-duty configuration changes are required.
 
 ## Populate the environment files first
 
@@ -217,7 +221,7 @@ need to give Actions any validator credentials, private keys or deployment `.env
 The image name is derived from the repository, lowercased. For this repository:
 
 ```dotenv
-CONTROL_IMAGE=ghcr.io/owlofmoistness/lido-grafana:0.3.0
+CONTROL_IMAGE=ghcr.io/owlofmoistness/lido-grafana:0.4.0
 CONTROL_PULL_POLICY=always
 ```
 
@@ -241,8 +245,8 @@ exporter image. This standalone packaging works with control image `0.2.0`;
 it does not require rebuilding the image. To publish a release after the initial commit is on main:
 
 ```sh
-git tag v0.3.0
-git push origin v0.3.0
+git tag v0.4.0
+git push origin v0.4.0
 ```
 
 ## Public/private boundary

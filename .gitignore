@@ -35,3 +35,6 @@ __pycache__/
 .DS_Store
 ._*
 Thumbs.db
+
+# Operator public-key inventories are local deployment data.
+/inventory/

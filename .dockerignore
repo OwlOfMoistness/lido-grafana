@@ -3,6 +3,7 @@
 !deployment/
 !deployment/Dockerfile
 !deployment/control.py
+!deployment/inventory.py
 !monitoring/
 !monitoring/dashboards/
 !monitoring/dashboards/lido-validator-fleet.json

@@ -249,6 +249,7 @@ observations separately.
 
 | Panel | Source / meaning |
 | --- | --- |
+| Active validators / Active balance | Optional CSV inventory collector: on-chain active count and actual consensus ETH balance, with freshness and completeness guards; see [inventory guide](../deployment/INVENTORY.md) |
 | Loaded validators | Nimbus validator `validators`: attached keys, not active on-chain validators |
 | Attestations/proposals | Validator `beacon_attestations_sent_total` / `beacon_blocks_sent_total`: successful submissions, not independently verified canonical inclusion |
 | Selected-period totals | `increase(...[$__range])`, calculated separately per series before summing, so observed counter resets are handled |
@@ -274,7 +275,7 @@ Do not enable high-cardinality detailed monitoring merely to fill this panel.
 Metrics endpoint reachability does not prove sync or readiness to sign. Head
 progression, peers, successful duty activity, and Nimbus's connection status
 should be considered together. This draft does not claim an authoritative
-per-instance on-chain active count or exact backend-selection indicator.
+native per-instance on-chain active count or exact backend-selection indicator. The optional CSV collector supplies the active count and balance separately from Nimbus metrics.
 
 The fleet loaded-key count is suppressed if a selected client or its count metric
 is missing. Activity totals use available history, even when a client is now
