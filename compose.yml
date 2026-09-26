@@ -5,7 +5,7 @@ name: lido-fleet
 x-role: ${COMPOSE_PROFILES:?Keep COMPOSE_PROFILES in .env as shown in .env.example}
 
 x-control: &control
-  image: ${CONTROL_IMAGE:-ghcr.io/owlofmoistness/lido-grafana:0.4.0}
+  image: ${CONTROL_IMAGE:-ghcr.io/owlofmoistness/lido-grafana:0.5.0}
   pull_policy: ${CONTROL_PULL_POLICY:-always}
   profiles: ["true"]
   read_only: true
@@ -13,6 +13,7 @@ x-control: &control
   security_opt: [no-new-privileges:true]
 
 x-settings: &settings
+  LOCAL_VALIDATOR_ENABLED: ${LOCAL_VALIDATOR_ENABLED:-true}
   VC_ID: ${VC_ID:-validator-1}
   VC_NAME: ${VC_NAME:-VC 1}
   VC_METRICS_ADDRESS: ${VC_METRICS_ADDRESS:-127.0.0.1:8808}

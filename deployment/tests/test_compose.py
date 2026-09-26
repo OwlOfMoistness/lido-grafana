@@ -56,12 +56,23 @@ class StandaloneCompose(unittest.TestCase):
         self.assertEqual(collector['volumes'][0]['target'], '/inventory')
         self.assertNotIn('GRAFANA_ADMIN_PASSWORD', collector['environment'])
         tunnels = hub['services']['tunnels']
-        self.assertEqual(tunnels['image'], 'ghcr.io/owlofmoistness/lido-grafana:0.4.0')
+        self.assertEqual(tunnels['image'], 'ghcr.io/owlofmoistness/lido-grafana:0.5.0')
         self.assertNotIn('GRAFANA_ADMIN_PASSWORD', tunnels['environment'])
         for mount in tunnels['volumes']:
             self.assertTrue(mount['read_only'])
             # Some Compose versions omit false fields when serializing JSON.
             self.assertFalse(mount.get('bind', {}).get('create_host_path', False))
+
+    def test_local_validator_switch_reaches_all_control_services(self):
+        for value in ('true','false'):
+            model = self.config('HUB=true\nCOMPOSE_PROFILES=${HUB:-false}\nLOCAL_VALIDATOR_ENABLED='+value+'\n')
+            for name in ('configure','tunnels','inventory'):
+                with self.subTest(value=value,service=name):
+                    self.assertEqual(model['services'][name]['environment']['LOCAL_VALIDATOR_ENABLED'],value)
+        default = self.config('HUB=true\nCOMPOSE_PROFILES=${HUB:-false}\n')
+        self.assertEqual(default['services']['configure']['environment']['LOCAL_VALIDATOR_ENABLED'],'true')
+        child = self.config('HUB=false\nCOMPOSE_PROFILES=${HUB:-false}\nLOCAL_VALIDATOR_ENABLED=false\n')
+        self.assertEqual(set(child['services']),{'host-exporter'})
 
     def test_missing_role_mapping_is_reported(self):
         result = self.render('HUB=true\n')

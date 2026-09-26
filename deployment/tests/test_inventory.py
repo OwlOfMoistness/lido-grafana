@@ -109,7 +109,7 @@ class Inventory(unittest.TestCase):
 
     def test_exporter_clears_previous_values_after_failure(self):
         # Run two polling iterations with deterministic thread/server stand-ins.
-        config={'own_id':'validator-1','children':[],'inventory_enabled':True,
+        config={'clients':[('validator-1','VC 1')],'inventory_enabled':True,
                 'inventory_port':19200,'beacon_apis':['http://beacon']}
         captures=[]
         class Stop(Exception): pass

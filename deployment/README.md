@@ -20,7 +20,7 @@ Main and fallback are collected once, not once through each VC server.
 The custom **control image** packages the dashboard, provisioning generator,
 SSH client/supervisor, CSV inventory collector and post-start checker. Grafana, Prometheus and node-exporter
 use their upstream images as separate containers. The GitHub workflow publishes
-the control image to GHCR on version-tag pushes; `.env.example` selects `:0.4.0`.
+the control image to GHCR on version-tag pushes; `.env.example` selects `:0.5.0`.
 The exporter and dashboard services use their own upstream images. An image does
 not start sibling containers or need access to the Docker socket; Compose starts
 the services for the selected role.
@@ -69,10 +69,15 @@ addresses are configured in the hub's `CHILDREN` list.
 
 On the hub, fill in:
 
-- `VC_ID`, `VC_NAME` and `VC_METRICS_ADDRESS` (its existing validator metrics).
+- `LOCAL_VALIDATOR_ENABLED`: `true` (default) monitors a local validator;
+  `false` makes the hub monitor only `CHILDREN`. Use lowercase literal values.
+- `VC_ID`, `VC_NAME` and `VC_METRICS_ADDRESS` for a local validator. They are
+  ignored when local monitoring is disabled; the former local ID may be reused
+  by a child.
 - `BACKEND_ADDRESS`: the private address to which the hub's existing main and
   fallback SSH forwards bind. Use the address from its working service files.
-- `CHILDREN`: real SSH DNS/IP, SSH port and user for child 2 and child 3.
+- `CHILDREN`: real SSH DNS/IP, SSH port and user for each remote validator.
+  When local monitoring is disabled, include all validators here (at least one).
   Use a dedicated monitoring account with
   [server-enforced SSH restrictions](../README.md#restricted-ssh-access).
   Their existing validator metrics are normally `127.0.0.1:8808` on each child;
@@ -94,6 +99,19 @@ sections include them automatically. IDs must be unique
 also reserved for its exporter. Keep these assignments stable to preserve
 time-series identity. Addresses support IPv4 and DNS names. Arbitrary SSH config
 aliases and passphrase/agent-based keys are not supported by this initial version.
+
+### Hub without a local validator
+
+See the [hub role examples](../README.md#optional-a-hub-without-a-validator).
+Set `HUB=true` and `LOCAL_VALIDATOR_ENABLED=false` to run monitoring without
+creating a local validator target, dashboard row or inventory requirement.
+Configure every validator as a child; backend targets continue independently.
+Switching back to `true` requires a unique local `VC_ID` that does not duplicate
+a child. CSV filenames always follow the configured validator IDs.
+
+This option requires v0.5.0 or later. Download the matching Compose file as well
+as the new image: Compose must pass the setting to the control services. Applying
+`.env` changes requires container recreation, not just `docker compose restart`.
 
 ### Custom client names
 
@@ -221,7 +239,7 @@ need to give Actions any validator credentials, private keys or deployment `.env
 The image name is derived from the repository, lowercased. For this repository:
 
 ```dotenv
-CONTROL_IMAGE=ghcr.io/owlofmoistness/lido-grafana:0.4.0
+CONTROL_IMAGE=ghcr.io/owlofmoistness/lido-grafana:0.5.0
 CONTROL_PULL_POLICY=always
 ```
 
@@ -245,8 +263,8 @@ exporter image. This standalone packaging works with control image `0.2.0`;
 it does not require rebuilding the image. To publish a release after the initial commit is on main:
 
 ```sh
-git tag v0.4.0
-git push origin v0.4.0
+git tag v0.5.0
+git push origin v0.5.0
 ```
 
 ## Public/private boundary

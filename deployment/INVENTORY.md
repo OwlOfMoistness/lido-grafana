@@ -7,10 +7,13 @@ Prometheus labels. The image contains no operator inventory files.
 
 ## Setup and v0.3.0 upgrade
 
-1. Download the v0.4.0 `compose.yml` and update `CONTROL_IMAGE` to
-   `ghcr.io/owlofmoistness/lido-grafana:0.4.0` in the existing hub `.env`.
+1. Download the v0.5.0 `compose.yml` and update `CONTROL_IMAGE` to
+   `ghcr.io/owlofmoistness/lido-grafana:0.5.0` in the existing hub `.env`.
    Preserve the existing project name, data volumes, password and server settings.
-2. Create `inventory/validator-1.csv` for the hub and one CSV for every child ID.
+2. Create one CSV for every configured validator ID. With local monitoring
+   enabled, this includes the hub validator (normally `inventory/validator-1.csv`)
+   and every child. With `LOCAL_VALIDATOR_ENABLED=false`, only child CSVs are
+   required; there is no inventory entry for the hub itself.
    Each nonblank line contains one 98-character public key (`0x` plus 96 hex
    characters), without a header. Single-column quoted CSV is accepted. Empty
    files mean zero assigned keys; missing files are errors. Duplicates within a
@@ -55,7 +58,8 @@ conversion, including consensus rewards. Effective balance, execution rewards an
 withdrawn ETH are not included. This is a current snapshot; the activity totals
 continue to use the dashboard's selected time period.
 
-Membership comes from the supplied inventory, not the loaded-key gauge. There is
+Membership comes from the supplied inventory, not the loaded-key gauge. Files
+for IDs absent from the current configuration are ignored. There is
 no automatic test that your CSV matches the keys loaded by the client. Update the
 files when keys move; use atomic file replacement when editing. Unknown keys
 (valid public-key format but absent from beacon state) are reported separately

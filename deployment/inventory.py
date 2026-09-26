@@ -141,7 +141,7 @@ def metrics(clients, result=None, timestamp=0, backend=0, enabled=True):
 
 
 def serve(config):
-    clients = [config['own_id']] + [c['id'] for c in config['children']]
+    clients = [ident for ident, _name in config['clients']]
     enabled = config['inventory_enabled']
     directory = Path(os.environ.get('INVENTORY_DIRECTORY', '/inventory'))
     payload = metrics(clients, enabled=enabled)

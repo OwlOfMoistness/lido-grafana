@@ -52,9 +52,15 @@ def metrics_path(value):
 
 
 def settings(env):
-    own_id = vc_id(env.get("VC_ID", "validator-1"))
-    own_name = display_name(env.get("VC_NAME", "VC 1"))
-    local_vc = endpoint(env.get("VC_METRICS_ADDRESS", "127.0.0.1:8808"))
+    local_enabled = env.get("LOCAL_VALIDATOR_ENABLED", "true")
+    if local_enabled not in ("true", "false"):
+        raise ValueError("LOCAL_VALIDATOR_ENABLED must be true or false")
+    local_enabled = local_enabled == "true"
+    # In monitoring-only mode these values are ignored, including their IDs
+    # and ports: an existing local client may now be a child with the same ID.
+    own_id = vc_id(env.get("VC_ID", "validator-1")) if local_enabled else None
+    own_name = display_name(env.get("VC_NAME", "VC 1")) if local_enabled else None
+    local_vc = endpoint(env.get("VC_METRICS_ADDRESS", "127.0.0.1:8808")) if local_enabled else None
     node_port = port(env.get("NODE_EXPORTER_PORT", "19103"))
     prom_port = port(env.get("PROMETHEUS_PORT", "9092"))
     grafana_port = port(env.get("GRAFANA_PORT", "3200"))
@@ -78,7 +84,9 @@ def settings(env):
             backends.append((role, component, f"{backend}:{number}", path))
     # Reserve existing monitoring endpoints too, to avoid shadowing loopback
     # addresses or colliding with broadly bound host listeners.
-    occupied = [inventory_port, node_port, prom_port, grafana_port, int(local_vc.rsplit(":", 1)[1])]
+    occupied = [inventory_port, node_port, prom_port, grafana_port]
+    if local_enabled:
+        occupied.append(int(local_vc.rsplit(":", 1)[1]))
     occupied += [int(item[2].rsplit(":", 1)[1]) for item in backends]
     occupied += [int(url.rsplit(":", 1)[1]) for url in beacon_apis]
     if len(set(occupied)) != len(occupied):
@@ -86,7 +94,7 @@ def settings(env):
     children = json.loads(env.get("CHILDREN", "[]"))
     if not isinstance(children, list):
         raise ValueError("CHILDREN must be a JSON list")
-    seen = {own_id}
+    seen = {own_id} if local_enabled else set()
     normalized = []
     for child in children:
         ident = vc_id(child["id"])
@@ -110,7 +118,11 @@ def settings(env):
             "node_address": address(child.get("node_address", "127.0.0.1")),
             "node_port": port(child.get("node_port", 19103)),
         })
+    clients = ([(own_id, own_name)] if local_enabled else []) + [(c["id"], c["name"]) for c in normalized]
+    if not clients:
+        raise ValueError("Add at least one CHILDREN entry when LOCAL_VALIDATOR_ENABLED=false")
     return {"own_id": own_id, "own_name": own_name, "local_vc": local_vc,
+            "local_validator_enabled": local_enabled, "clients": clients,
             "node_port": node_port, "prom_port": prom_port, "grafana_port": grafana_port,
             "interval": interval, "children": normalized, "backends": backends,
             "inventory_enabled": inventory_enabled == "true", "inventory_port": inventory_port,
@@ -124,8 +136,9 @@ def targets(config):
         result.append({"targets": [target], "labels": {
             "host": host, "role": role, "component": component, "__metrics_path__": path}})
 
-    add(config["own_id"], "validator", "validator", config["local_vc"])
-    add(config["own_id"], "validator", "node", f"127.0.0.1:{config['node_port']}")
+    if config["local_validator_enabled"]:
+        add(config["own_id"], "validator", "validator", config["local_vc"])
+        add(config["own_id"], "validator", "node", f"127.0.0.1:{config['node_port']}")
     for child in config["children"]:
         add(child["id"], "validator", "validator", f"127.0.0.1:{child['local_port']}")
         add(child["id"], "validator", "node", f"127.0.0.1:{child['local_port'] + 1}")
@@ -208,7 +221,7 @@ def generate(config, output, template):
             "disableDeletion": True, "updateIntervalSeconds": 30, "allowUiUpdates": False,
             "options": {"path": "/generated/dashboards"}}]})
     dashboard = json.loads(template.read_text())
-    clients = [(config["own_id"], config["own_name"])] + [(c["id"], c["name"]) for c in config["children"]]
+    clients = config["clients"]
     variable = next(v for v in dashboard["templating"]["list"] if v["name"] == "validator")
     variable["query"] = ", ".join(f"{name} : {ident}" for ident, name in clients)
     variable["options"] = [{"text": "All", "value": "$__all", "selected": True}] + [
@@ -305,7 +318,7 @@ def check(config):
         expression = 'lido_inventory_success{job="inventory"} == 1 and on(host) (time() - lido_inventory_timestamp_seconds{job="inventory"} < 180)'
         data = fetch(f"http://127.0.0.1:{config['prom_port']}/api/v1/query?" + urllib.parse.urlencode({'query': expression}))
         healthy = {item['metric'].get('host') for item in data.get('data', {}).get('result', [])}
-        for ident in [config['own_id']] + [c['id'] for c in config['children']]:
+        for ident, _name in config['clients']:
             ok = data.get('status') == 'success' and ident in healthy
             print(f"{'OK' if ok else 'FAIL'} {ident} / inventory: " + ('fresh beacon snapshot' if ok else 'missing, failed or stale CSV/beacon lookup'))
             failed |= not ok
@@ -325,7 +338,7 @@ def main():
     config = settings(os.environ)
     if args.mode == "generate":
         generate(config, args.output, args.template)
-        print(f"Generated configuration for {1 + len(config['children'])} VCs and two shared backends")
+        print(f"Generated configuration for {len(config['clients'])} VCs and two shared backends")
     elif args.mode == "inventory":
         import inventory
         inventory.serve(config)

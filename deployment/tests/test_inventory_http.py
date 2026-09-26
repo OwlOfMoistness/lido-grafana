@@ -17,6 +17,13 @@ ROOT=Path(__file__).resolve().parents[2]
 
 class InventoryHTTP(unittest.TestCase):
     def test_real_collector_serves_aggregate_metrics_without_keys(self):
+        self.run_collector('true')
+
+    def test_monitoring_only_collector_needs_only_child_csvs(self):
+        self.run_collector('false')
+
+    def run_collector(self, enabled):
+        funded = 'validator-1' if enabled=='true' else 'validator-3'
         pubkey='0x'+'01'*48
         requests=[]
         class Beacon(BaseHTTPRequestHandler):
@@ -44,12 +51,15 @@ class InventoryHTTP(unittest.TestCase):
             with socket.socket() as sock:
                 sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
             with tempfile.TemporaryDirectory() as directory:
-                (Path(directory)/'validator-1.csv').write_text(pubkey+'\n')
+                (Path(directory)/f'{funded}.csv').write_text(pubkey+'\n')
                 (Path(directory)/'validator-2.csv').write_text('')
+                children=[{'id':'validator-2','host':'child2.example.org','user':'monitor','local_port':20000}]
+                if enabled=='false':
+                    children.append({'id':'validator-3','host':'child3.example.org','user':'monitor','local_port':20002})
                 env={**os.environ,'BACKEND_ADDRESS':'127.0.0.1','INVENTORY_ENABLED':'true',
-                     'INVENTORY_DIRECTORY':directory,'INVENTORY_PORT':str(port),
+                     'INVENTORY_DIRECTORY':directory,'INVENTORY_PORT':str(port),'LOCAL_VALIDATOR_ENABLED':enabled,
                      'MAIN_BEACON_API_PORT':str(server.server_port),'VC_ID':'validator-1',
-                     'CHILDREN':json.dumps([{'id':'validator-2','host':'child.example.org','user':'monitor','local_port':20000}])}
+                     'CHILDREN':json.dumps(children)}
                 process=subprocess.Popen([sys.executable,str(ROOT/'deployment/control.py'),'inventory'],env=env,
                                          stdout=subprocess.PIPE,stderr=subprocess.PIPE)
                 try:
@@ -63,7 +73,8 @@ class InventoryHTTP(unittest.TestCase):
                             if 'lido_inventory_active_balance_eth{' in text: break
                         except OSError: pass
                         time.sleep(.05)
-                    self.assertIn('lido_inventory_active_balance_eth{host="validator-1"} 32.123456789',text)
+                    self.assertIn('lido_inventory_active_balance_eth{host="'+funded+'"} 32.123456789',text)
+                    if enabled=='false': self.assertNotIn('validator-1',text)
                     self.assertIn('lido_inventory_active_validators{host="validator-2"} 0',text)
                     self.assertNotIn(pubkey,text)
                     self.assertIn('/eth/v1/beacon/states/100/validators',requests)

@@ -24,6 +24,46 @@ def environment():
 
 
 class Configuration(unittest.TestCase):
+    def test_local_validator_defaults_on_and_rejects_invalid_switch(self):
+        config = control.settings(environment())
+        self.assertTrue(config['local_validator_enabled'])
+        self.assertEqual(config['clients'][0], ('validator-1', 'VC 1 - Hub'))
+        for value in ('yes', 'TRUE', '', '0', True):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                control.settings({**environment(), 'LOCAL_VALIDATOR_ENABLED':value})
+        with self.assertRaisesRegex(ValueError, 'at least one CHILDREN'):
+            control.settings({**environment(), 'LOCAL_VALIDATOR_ENABLED':'false', 'CHILDREN':'[]'})
+
+    def test_monitoring_only_hub_ignores_local_fields_and_releases_local_id_and_port(self):
+        children = [{'id':'validator-1','name':'Apple','host':'child1.example.org',
+                     'user':'monitor','local_port':8808}]
+        config = control.settings({**environment(), 'LOCAL_VALIDATOR_ENABLED':'false',
+                                   'VC_ID':'unused', 'VC_NAME':'', 'VC_METRICS_ADDRESS':'unused',
+                                   'CHILDREN':json.dumps(children)})
+        self.assertFalse(config['local_validator_enabled'])
+        self.assertIsNone(config['local_vc'])
+        self.assertEqual(config['clients'], [('validator-1','Apple')])
+        targets = [t for t in control.targets(config) if t['labels']['role']=='validator']
+        self.assertEqual([t['targets'] for t in targets], [['127.0.0.1:8808'],['127.0.0.1:8809']])
+        with self.assertRaisesRegex(ValueError, 'Duplicate VC id'):
+            control.settings({**environment(), 'LOCAL_VALIDATOR_ENABLED':'false',
+                              'CHILDREN':json.dumps(children*2)})
+
+    def test_switching_hub_mode_regenerates_only_configured_clients(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            for enabled, expected in [('true', {'validator-1','validator-2','validator-3'}),
+                                      ('false', {'validator-2','validator-3'}),
+                                      ('true', {'validator-1','validator-2','validator-3'})]:
+                config = control.settings({**environment(), 'LOCAL_VALIDATOR_ENABLED':enabled})
+                control.generate(config, output, ROOT/'monitoring/dashboards/lido-validator-fleet.json')
+                board = (output/'dashboards/lido-validator-fleet.json').read_text()
+                targets = json.loads((output/'targets.json').read_text())
+                with self.subTest(enabled=enabled):
+                    self.assertEqual(set(re.findall(r'validator-[1-9][0-9]*',board)), expected)
+                    self.assertEqual({t['labels']['host'] for t in targets if t['labels']['role']=='validator'},expected)
+                    self.assertEqual(len(targets),len(expected)*2+6)
+
     def test_inventory_target_preserves_exported_client_labels(self):
         env = environment()
         env['INVENTORY_ENABLED'] = 'true'
@@ -38,21 +78,24 @@ class Configuration(unittest.TestCase):
                 control.settings({**env, setting:value})
 
     def test_inventory_check_requires_each_clients_fresh_snapshot(self):
-        config = control.settings({**environment(), 'INVENTORY_ENABLED':'true'})
-        active=[]
-        for target in control.targets(config):
-            labels={k:v for k,v in target['labels'].items() if not k.startswith('__')}
-            labels.update(job=labels['component'], instance=target['targets'][0])
-            active.append({'labels':labels,'health':'up','lastError':'',
-                           'scrapeUrl':'http://'+target['targets'][0]+target['labels']['__metrics_path__']})
-        for count in (0,2,3):
-            opener=MagicMock()
-            opener.open.side_effect=[io.BytesIO(json.dumps(data).encode()) for data in [
-                {'status':'success','data':{'activeTargets':active}},
-                {'status':'success','data':{'result':[{'metric':{'host':f'validator-{i}'}} for i in range(1,count+1)]}},
-                {'database':'ok'}]]
-            with self.subTest(count=count), patch.object(control.urllib.request,'build_opener',return_value=opener),contextlib.redirect_stdout(io.StringIO()):
-                self.assertEqual(control.check(config), 0 if count==3 else 1)
+        for enabled in ('true','false'):
+            config = control.settings({**environment(), 'INVENTORY_ENABLED':'true',
+                                       'LOCAL_VALIDATOR_ENABLED':enabled})
+            clients = [ident for ident,_name in config['clients']]
+            active=[]
+            for target in control.targets(config):
+                labels={k:v for k,v in target['labels'].items() if not k.startswith('__')}
+                labels.update(job=labels['component'], instance=target['targets'][0])
+                active.append({'labels':labels,'health':'up','lastError':'',
+                               'scrapeUrl':'http://'+target['targets'][0]+target['labels']['__metrics_path__']})
+            for count in (0,len(clients)-1,len(clients)):
+                opener=MagicMock()
+                opener.open.side_effect=[io.BytesIO(json.dumps(data).encode()) for data in [
+                    {'status':'success','data':{'activeTargets':active}},
+                    {'status':'success','data':{'result':[{'metric':{'host':ident}} for ident in clients[:count]]}},
+                    {'database':'ok'}]]
+                with self.subTest(enabled=enabled,count=count), patch.object(control.urllib.request,'build_opener',return_value=opener),contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(control.check(config), 0 if count==len(clients) else 1)
 
     def test_exact_targets_and_geth_path(self):
         config = control.settings(environment())

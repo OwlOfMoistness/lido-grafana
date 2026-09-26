@@ -10,7 +10,8 @@ sections alongside the validator-client overviews.
 
 ## How it works
 
-Choose one validator server as the **hub**. It runs Grafana, Prometheus, a host
+Choose one server as the **hub**; it can host a validator, a beacon/execution node,
+or just monitoring. It runs Grafana, Prometheus, a host
 exporter, and SSH tunnels to the other servers—the **children**. Each child runs
 an exporter alongside its existing validator client. This stack monitors your
 clients; it does not install or manage the validators themselves.
@@ -19,15 +20,16 @@ The hub's client list controls the dashboard automatically:
 
 | Configuration | Client overviews |
 | --- | ---: |
-| Hub + one child | 2 |
-| Hub + two children | 3 |
-| Hub + four children | 5 |
+| Hub with local validator + one child | 2 |
+| Hub with local validator + two children | 3 |
+| Hub without local validator + three children | 3 |
+| Hub without local validator + five children | 5 |
 
 Add or remove entries in `CHILDREN` to change the fleet size. No manual dashboard
 duplication is needed. Configured clients that go offline remain visible as
 unavailable.
 
-The current deployment supports one local validator client on the hub and
+The deployment supports an optional local validator client on the hub and
 additional clients over SSH, with shared main/fallback backends. Multiple client
 processes on one machine and a backend without a fallback are not yet supported
 as dedicated configuration modes.
@@ -104,6 +106,7 @@ On the **hub**, a minimal example for one child looks like this:
 ```dotenv
 HUB=true
 COMPOSE_PROFILES=${HUB:-false}
+LOCAL_VALIDATOR_ENABLED=true
 VC_ID=validator-1
 VC_NAME='VC 1 - Hub'
 VC_METRICS_ADDRESS=127.0.0.1:8808
@@ -121,17 +124,56 @@ client headings, tables, and graph legends. Names are configured on the hub;
 keep IDs such as `validator-2` stable when renaming a client.
 
 The example defaults to the GHCR image
-`ghcr.io/owlofmoistness/lido-grafana:0.4.0`. The control image already contains
+`ghcr.io/owlofmoistness/lido-grafana:0.5.0`. The control image already contains
 the dashboard and provisioning code. Branch pushes run
 validation only; version-tag pushes publish images. No manually created GitHub
 secrets are required.
 [Local builds and registry details](deployment/README.md#images-from-github-container-registry)
 are covered in the deployment guide.
 
+### Optional: a hub without a validator
+
+`HUB` chooses which monitoring services run. `LOCAL_VALIDATOR_ENABLED` independently
+chooses whether the hub also has a validator to monitor. Neither setting starts
+or stops your existing validator, beacon or execution clients.
+
+| HUB | LOCAL_VALIDATOR_ENABLED | Monitoring behavior |
+| --- | --- | --- |
+| `false` | ignored | Child host exporter only |
+| `true` | `true` (default) | Monitor the local validator and all `CHILDREN` |
+| `true` | `false` | Monitor only the validators listed in `CHILDREN` |
+
+For a hub with all validators on other servers:
+
+```dotenv
+HUB=true
+COMPOSE_PROFILES=${HUB:-false}
+LOCAL_VALIDATOR_ENABLED=false
+CHILDREN='[{"id":"validator-1","name":"Apple","host":"child-1.example.org","user":"monitor","local_port":20000},{"id":"validator-2","name":"Bananas","host":"child-2.example.org","user":"monitor","local_port":20002}]'
+```
+
+Add every validator client to `CHILDREN` (at least one). `VC_ID`, `VC_NAME` and
+`VC_METRICS_ADDRESS` are ignored in this mode. Only those children appear in the
+client selector, tables and repeated overviews, and only their CSV files are
+required. A child can retain `validator-1` when a formerly local validator moves
+into the child list. Keep IDs stable to retain the same client grouping.
+
+Main/fallback backend monitoring continues independently. If the hub also hosts
+a beacon/execution node, configure the backend endpoints reachable from that
+hub; existing validator-duty tunnels do not need to change for this switch.
+The hub still runs its host exporter but is not added as an extra validator.
+Moving to another machine does not automatically transfer Grafana or Prometheus
+history; those live in the existing Docker volumes.
+
+**Availability:** supported from v0.5.0. Update both the Compose file and
+control image when upgrading from an older release. Existing installations
+default to local monitoring when the setting is omitted.
+
 ### Optional: active validators and ETH balances
 
 On the hub, create an `inventory` directory with one file per configured client:
-`validator-1.csv`, `validator-2.csv`, and so on. Each file contains **one full
+`validator-1.csv`, `validator-2.csv`, and so on. With local monitoring disabled,
+provide files only for the IDs in `CHILDREN`. Each file contains **one full
 validator public key per line**, including the `0x` prefix, with no header.
 Use the stable client IDs for filenames, regardless of display names. Include
 pending keys too; never put signing keys or keystores in this directory.
