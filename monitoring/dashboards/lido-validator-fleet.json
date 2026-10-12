@@ -11,7 +11,7 @@
   ],
   "timezone": "browser",
   "schemaVersion": 38,
-  "version": 8,
+  "version": 9,
   "editable": true,
   "graphTooltip": 1,
   "refresh": "30s",
@@ -152,7 +152,7 @@
     {
       "id": 3,
       "type": "stat",
-      "title": "Loaded validators",
+      "title": "",
       "description": "Loaded keys, not the on-chain active count. Suppressed if any selected validator endpoint or its count metric is missing, rather than displaying a misleading partial total.",
       "datasource": {
         "type": "prometheus",
@@ -161,7 +161,7 @@
       "gridPos": {
         "x": 0,
         "y": 1,
-        "w": 4,
+        "w": 2,
         "h": 2
       },
       "fieldConfig": {
@@ -202,7 +202,8 @@
               }
             }
           ],
-          "decimals": 0
+          "decimals": 0,
+          "displayName": "Loaded"
         },
         "overrides": [
           {
@@ -251,13 +252,14 @@
           ],
           "fields": ""
         },
-        "orientation": "auto",
+        "orientation": "vertical",
         "colorMode": "value",
         "graphMode": "none",
         "justifyMode": "auto",
-        "textMode": "auto",
+        "textMode": "value_and_name",
         "text": {
-          "valueSize": 30
+          "valueSize": 30,
+          "titleSize": 12
         }
       },
       "targets": [
@@ -278,16 +280,16 @@
     {
       "id": 41,
       "type": "stat",
-      "title": "Active validators",
+      "title": "",
       "description": "Latest on-chain state for public keys in the CSV inventory; not proof of duty success or automatic discovery of loaded keys. Active includes ongoing, exiting and slashed validators until exit. No data when disabled, missing, failed or older than 180 seconds. Fleet totals require every selected client. Pending, exited and unknown keys are excluded.",
       "datasource": {
         "type": "prometheus",
         "uid": "lido-prometheus"
       },
       "gridPos": {
-        "x": 4,
+        "x": 2,
         "y": 1,
-        "w": 3,
+        "w": 2,
         "h": 2
       },
       "fieldConfig": {
@@ -329,7 +331,8 @@
               }
             }
           ],
-          "decimals": 0
+          "decimals": 0,
+          "displayName": "Active"
         },
         "overrides": []
       },
@@ -341,13 +344,14 @@
           ],
           "fields": ""
         },
-        "orientation": "auto",
+        "orientation": "vertical",
         "colorMode": "value",
         "graphMode": "none",
         "justifyMode": "auto",
-        "textMode": "value",
+        "textMode": "value_and_name",
         "text": {
-          "valueSize": 30
+          "valueSize": 30,
+          "titleSize": 12
         }
       },
       "targets": [
@@ -375,7 +379,7 @@
         "uid": "lido-prometheus"
       },
       "gridPos": {
-        "x": 7,
+        "x": 4,
         "y": 1,
         "w": 4,
         "h": 2
@@ -458,16 +462,16 @@
     {
       "id": 4,
       "type": "stat",
-      "title": "Activity totals",
-      "description": "Estimated successful submissions over the selected dashboard time range. Calculated from the validator client only, so shared beacon nodes are not counted again. Counter resets are handled; scrape outages and history before this Prometheus started can make totals incomplete. Submission is not proof of on-chain inclusion.",
+      "title": "Activity \u00b7 since restart",
+      "description": "Successful submission counters since each validator client last restarted. These are raw client counters, not increases over the selected time range; changing the range start does not change them. Values are evaluated at the range end, so use a range ending now for current totals. Client restarts reset their counters; the fleet combines clients with different restart times. Missing or offline clients suppress fleet totals and leave their table values blank. Submission is not proof of on-chain inclusion.",
       "datasource": {
         "type": "prometheus",
         "uid": "lido-prometheus"
       },
       "gridPos": {
-        "x": 11,
+        "x": 8,
         "y": 1,
-        "w": 7,
+        "w": 10,
         "h": 2
       },
       "fieldConfig": {
@@ -537,7 +541,7 @@
             "type": "prometheus",
             "uid": "lido-prometheus"
           },
-          "expr": "sum(increase(beacon_attestations_sent_total{job=\"validator\",host=~\"${validator:regex}\"}[$__range]))",
+          "expr": "sum((beacon_attestations_sent_total{job=\"validator\",host=~\"${validator:regex}\"} and on(job, instance) (up{job=\"validator\",host=~\"${validator:regex}\"} == 1))) and on() (count((beacon_attestations_sent_total{job=\"validator\",host=~\"${validator:regex}\"} and on(job, instance) (up{job=\"validator\",host=~\"${validator:regex}\"} == 1))) == count(up{job=\"validator\",host=~\"${validator:regex}\"}))",
           "editorMode": "code",
           "legendFormat": "Attestations",
           "instant": true,
@@ -549,7 +553,7 @@
             "type": "prometheus",
             "uid": "lido-prometheus"
           },
-          "expr": "sum(increase(beacon_blocks_sent_total{job=\"validator\",host=~\"${validator:regex}\"}[$__range]))",
+          "expr": "sum((beacon_blocks_sent_total{job=\"validator\",host=~\"${validator:regex}\"} and on(job, instance) (up{job=\"validator\",host=~\"${validator:regex}\"} == 1))) and on() (count((beacon_blocks_sent_total{job=\"validator\",host=~\"${validator:regex}\"} and on(job, instance) (up{job=\"validator\",host=~\"${validator:regex}\"} == 1))) == count(up{job=\"validator\",host=~\"${validator:regex}\"}))",
           "editorMode": "code",
           "legendFormat": "Proposals",
           "instant": true,
@@ -1179,8 +1183,8 @@
     {
       "id": 38,
       "type": "table",
-      "title": "Validator clients \u00b7 activity totals for selected period",
-      "description": "Compare all selected validator clients. Metrics Up means the endpoint responds, not proof of successful duties. Loaded keys are attached keys, not on-chain active count. Attestations/proposals are successful submissions over the selected time range. Good links counts Nimbus endpoints classified good; it does not identify which backend is active. Missing values remain blank (\u2014). Expand client details below for history and other connection states. Active and Active ETH come from the supplied CSV keys, independent of the loaded-key count. Missing or stale inventory lookups stay blank. Active ETH is actual consensus balance, not effective balance.",
+      "title": "Validator clients \u00b7 activity since each client restart",
+      "description": "Compare all selected validator clients. Metrics Up means the endpoint responds, not proof of successful duties. Loaded keys are attached keys, not on-chain active count. Successful submission counters since each validator client last restarted. These are raw client counters, not increases over the selected time range; changing the range start does not change them. Values are evaluated at the range end, so use a range ending now for current totals. Client restarts reset their counters; the fleet combines clients with different restart times. Missing or offline clients suppress fleet totals and leave their table values blank. Submission is not proof of on-chain inclusion. Good links counts Nimbus endpoints classified good; it does not identify which backend is active. Missing values remain blank (\u2014). Expand client details below for history and other connection states. Active and Active ETH come from the supplied CSV keys, independent of the loaded-key count. Missing or stale inventory lookups stay blank. Active ETH is actual consensus balance, not effective balance.\nUpcoming proposals cover the remainder of the current epoch (including the current slot) and the next epoch. This is a live schedule, not a total for the selected period. Use a time range ending now and refresh before maintenance. Unknown means unavailable, stale, incomplete or disabled inventory. A zero is not permission to reboot: attestations and sync duties still apply; schedules can change after a reorg.",
       "datasource": {
         "type": "prometheus",
         "uid": "lido-prometheus"
@@ -1222,7 +1226,7 @@
             "type": "prometheus",
             "uid": "lido-prometheus"
           },
-          "expr": "sum by(host) (increase(beacon_attestations_sent_total{job=\"validator\",host=~\"${validator:regex}\"}[$__range]))",
+          "expr": "sum by(host) ((beacon_attestations_sent_total{job=\"validator\",host=~\"${validator:regex}\"} and on(job, instance) (up{job=\"validator\",host=~\"${validator:regex}\"} == 1)))",
           "instant": true,
           "range": false,
           "format": "table",
@@ -1234,7 +1238,7 @@
             "type": "prometheus",
             "uid": "lido-prometheus"
           },
-          "expr": "sum by(host) (increase(beacon_blocks_sent_total{job=\"validator\",host=~\"${validator:regex}\"}[$__range]))",
+          "expr": "sum by(host) ((beacon_blocks_sent_total{job=\"validator\",host=~\"${validator:regex}\"} and on(job, instance) (up{job=\"validator\",host=~\"${validator:regex}\"} == 1)))",
           "instant": true,
           "range": false,
           "format": "table",
@@ -1311,6 +1315,17 @@
           "range": false,
           "format": "table",
           "editorMode": "code"
+        },
+        {
+          "refId": "K",
+          "expr": "max by(host) (lido_proposals_upcoming{job=\"inventory\",host=~\"${validator:regex}\"} and on(host) (lido_proposals_success{job=\"inventory\",host=~\"${validator:regex}\"} == 1) and on(host) (lido_proposals_valid_until_seconds{job=\"inventory\",host=~\"${validator:regex}\"} > time()) and on(host) (time() - lido_proposals_timestamp_seconds{job=\"inventory\",host=~\"${validator:regex}\"} < 90) and on(host) (lido_proposals_timestamp_seconds{job=\"inventory\",host=~\"${validator:regex}\"} <= time()) and on() (up{job=\"inventory\"} == 1)) or on(host) (0 * max by(host) (up{job=\"validator\",host=~\"${validator:regex}\"}) - 1)",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          }
         }
       ],
       "transformations": [
@@ -1336,7 +1351,8 @@
                 "Value #G",
                 "Value #H",
                 "Value #I",
-                "Value #J"
+                "Value #J",
+                "Value #K"
               ]
             }
           }
@@ -1352,10 +1368,11 @@
               "Value #J": 4,
               "Value #C": 5,
               "Value #D": 6,
-              "Value #E": 7,
-              "Value #F": 8,
-              "Value #G": 9,
-              "Value #H": 10
+              "Value #K": 7,
+              "Value #E": 8,
+              "Value #F": 9,
+              "Value #G": 10,
+              "Value #H": 11
             },
             "renameByName": {
               "Value #A": "VC metrics",
@@ -1368,7 +1385,8 @@
               "Value #H": "Good links",
               "host": "Instance",
               "Value #I": "Active",
-              "Value #J": "Active ETH"
+              "Value #J": "Active ETH",
+              "Value #K": "Upcoming \u00b7 now + next"
             },
             "excludeByName": {}
           }
@@ -1619,6 +1637,90 @@
               {
                 "id": "decimals",
                 "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Upcoming \u00b7 now + next"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "noValue",
+                "value": "Unknown"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "-1": {
+                        "text": "Unknown",
+                        "color": "text"
+                      }
+                    }
+                  },
+                  {
+                    "type": "special",
+                    "options": {
+                      "match": "null",
+                      "result": {
+                        "text": "Unknown",
+                        "color": "text"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "text",
+                      "value": null
+                    },
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "orange",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-text"
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 180
               }
             ]
           }
@@ -2103,7 +2205,7 @@
     {
       "id": 10,
       "type": "stat",
-      "title": "Validator client",
+      "title": "",
       "description": "Metrics Up means this endpoint is reachable, not proof of successful duties. Loaded keys are attached validators, not an on-chain active count.",
       "datasource": {
         "type": "prometheus",
@@ -2112,7 +2214,7 @@
       "gridPos": {
         "x": 0,
         "y": 20,
-        "w": 3,
+        "w": 2,
         "h": 3
       },
       "fieldConfig": {
@@ -2228,8 +2330,8 @@
         "justifyMode": "auto",
         "textMode": "value_and_name",
         "text": {
-          "titleSize": 12,
-          "valueSize": 25
+          "titleSize": 11,
+          "valueSize": 22
         }
       },
       "targets": [
@@ -2262,16 +2364,16 @@
     {
       "id": 43,
       "type": "stat",
-      "title": "Active validators",
+      "title": "",
       "description": "Latest on-chain state for public keys in the CSV inventory; not proof of duty success or automatic discovery of loaded keys. Active includes ongoing, exiting and slashed validators until exit. No data when disabled, missing, failed or older than 180 seconds. Fleet totals require every selected client. Pending, exited and unknown keys are excluded.",
       "datasource": {
         "type": "prometheus",
         "uid": "lido-prometheus"
       },
       "gridPos": {
-        "x": 3,
+        "x": 2,
         "y": 20,
-        "w": 3,
+        "w": 2,
         "h": 3
       },
       "fieldConfig": {
@@ -2313,7 +2415,8 @@
               }
             }
           ],
-          "decimals": 0
+          "decimals": 0,
+          "displayName": "Active"
         },
         "overrides": []
       },
@@ -2325,13 +2428,14 @@
           ],
           "fields": ""
         },
-        "orientation": "auto",
+        "orientation": "vertical",
         "colorMode": "value",
         "graphMode": "none",
         "justifyMode": "auto",
-        "textMode": "value",
+        "textMode": "value_and_name",
         "text": {
-          "valueSize": 30
+          "valueSize": 22,
+          "titleSize": 12
         }
       },
       "targets": [
@@ -2359,9 +2463,9 @@
         "uid": "lido-prometheus"
       },
       "gridPos": {
-        "x": 6,
+        "x": 4,
         "y": 20,
-        "w": 4,
+        "w": 3,
         "h": 3
       },
       "fieldConfig": {
@@ -2421,7 +2525,8 @@
         "justifyMode": "auto",
         "textMode": "value",
         "text": {
-          "valueSize": 30
+          "valueSize": 22,
+          "titleSize": 11
         }
       },
       "targets": [
@@ -2442,16 +2547,16 @@
     {
       "id": 12,
       "type": "stat",
-      "title": "Activity \u00b7 selected period",
-      "description": "Estimated successful submissions over the selected dashboard time range. Calculated from the validator client only, so shared beacon nodes are not counted again. Counter resets are handled; scrape outages and history before this Prometheus started can make totals incomplete. Submission is not proof of on-chain inclusion.",
+      "title": "Activity \u00b7 since restart",
+      "description": "Successful submission counters since each validator client last restarted. These are raw client counters, not increases over the selected time range; changing the range start does not change them. Values are evaluated at the range end, so use a range ending now for current totals. Client restarts reset their counters; the fleet combines clients with different restart times. Missing or offline clients suppress fleet totals and leave their table values blank. Submission is not proof of on-chain inclusion.",
       "datasource": {
         "type": "prometheus",
         "uid": "lido-prometheus"
       },
       "gridPos": {
-        "x": 10,
+        "x": 7,
         "y": 20,
-        "w": 4,
+        "w": 5,
         "h": 3
       },
       "fieldConfig": {
@@ -2510,8 +2615,8 @@
         "justifyMode": "auto",
         "textMode": "value_and_name",
         "text": {
-          "titleSize": 12,
-          "valueSize": 25
+          "titleSize": 11,
+          "valueSize": 22
         }
       },
       "targets": [
@@ -2521,7 +2626,7 @@
             "type": "prometheus",
             "uid": "lido-prometheus"
           },
-          "expr": "sum(increase(beacon_attestations_sent_total{job=\"validator\",host=~\"${validator:regex}\"}[$__range]))",
+          "expr": "sum((beacon_attestations_sent_total{job=\"validator\",host=~\"${validator:regex}\"} and on(job, instance) (up{job=\"validator\",host=~\"${validator:regex}\"} == 1))) and on() (count((beacon_attestations_sent_total{job=\"validator\",host=~\"${validator:regex}\"} and on(job, instance) (up{job=\"validator\",host=~\"${validator:regex}\"} == 1))) == count(up{job=\"validator\",host=~\"${validator:regex}\"}))",
           "editorMode": "code",
           "legendFormat": "Attestations",
           "instant": true,
@@ -2533,11 +2638,107 @@
             "type": "prometheus",
             "uid": "lido-prometheus"
           },
-          "expr": "sum(increase(beacon_blocks_sent_total{job=\"validator\",host=~\"${validator:regex}\"}[$__range]))",
+          "expr": "sum((beacon_blocks_sent_total{job=\"validator\",host=~\"${validator:regex}\"} and on(job, instance) (up{job=\"validator\",host=~\"${validator:regex}\"} == 1))) and on() (count((beacon_blocks_sent_total{job=\"validator\",host=~\"${validator:regex}\"} and on(job, instance) (up{job=\"validator\",host=~\"${validator:regex}\"} == 1))) == count(up{job=\"validator\",host=~\"${validator:regex}\"}))",
           "editorMode": "code",
           "legendFormat": "Proposals",
           "instant": true,
           "range": false
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "type": "stat",
+      "title": "Upcoming",
+      "description": "Upcoming proposals cover the remainder of the current epoch (including the current slot) and the next epoch. This is a live schedule, not a total for the selected period. Use a time range ending now and refresh before maintenance. Unknown means unavailable, stale, incomplete or disabled inventory. A zero is not permission to reboot: attestations and sync duties still apply; schedules can change after a reorg.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lido-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 20,
+        "w": 3,
+        "h": 3
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "noValue": "Unknown",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "-1": {
+                  "text": "Unknown",
+                  "color": "text"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "Unknown",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "last"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value_and_name",
+        "text": {
+          "titleSize": 11,
+          "valueSize": 22
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by(host) (lido_proposals_upcoming{job=\"inventory\",host=~\"${validator:regex}\"} and on(host) (lido_proposals_success{job=\"inventory\",host=~\"${validator:regex}\"} == 1) and on(host) (lido_proposals_valid_until_seconds{job=\"inventory\",host=~\"${validator:regex}\"} > time()) and on(host) (time() - lido_proposals_timestamp_seconds{job=\"inventory\",host=~\"${validator:regex}\"} < 90) and on(host) (lido_proposals_timestamp_seconds{job=\"inventory\",host=~\"${validator:regex}\"} <= time()) and on() (up{job=\"inventory\"} == 1)) or on(host) (0 * max by(host) (up{job=\"validator\",host=~\"${validator:regex}\"}) - 1)",
+          "instant": true,
+          "range": false,
+          "legendFormat": "Current + next epoch",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lido-prometheus"
+          }
         }
       ]
     },
@@ -2551,7 +2752,7 @@
         "uid": "lido-prometheus"
       },
       "gridPos": {
-        "x": 14,
+        "x": 15,
         "y": 20,
         "w": 3,
         "h": 3
@@ -2649,7 +2850,8 @@
         "justifyMode": "auto",
         "textMode": "auto",
         "text": {
-          "valueSize": 25
+          "valueSize": 22,
+          "titleSize": 11
         }
       },
       "targets": [
@@ -2670,16 +2872,16 @@
     {
       "id": 15,
       "type": "stat",
-      "title": "Host resources",
+      "title": "CPU / RAM",
       "description": "CPU utilization and memory consumption of this validator machine. These are host percentages; validator process RAM is shown separately.",
       "datasource": {
         "type": "prometheus",
         "uid": "lido-prometheus"
       },
       "gridPos": {
-        "x": 17,
+        "x": 18,
         "y": 20,
-        "w": 4,
+        "w": 3,
         "h": 3
       },
       "fieldConfig": {
@@ -2771,8 +2973,8 @@
         "justifyMode": "auto",
         "textMode": "value_and_name",
         "text": {
-          "titleSize": 12,
-          "valueSize": 25
+          "titleSize": 11,
+          "valueSize": 22
         }
       },
       "targets": [
@@ -2919,8 +3121,8 @@
         "justifyMode": "auto",
         "textMode": "value_and_name",
         "text": {
-          "titleSize": 12,
-          "valueSize": 25
+          "titleSize": 11,
+          "valueSize": 22
         }
       },
       "targets": [

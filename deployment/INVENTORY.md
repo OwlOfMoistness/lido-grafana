@@ -1,5 +1,8 @@
 # Active validator inventory
 
+For a one-shot per-public-key activation report and optional pending-deposit
+positions, see [Check validator activation](ACTIVATION.md).
+
 The optional hub collector connects public-key ownership to beacon state. It
 requires no signing keys, Keymanager token, execution RPC or new child tunnels.
 It exposes only aggregate metrics on `127.0.0.1:19200`; public keys never become

@@ -278,11 +278,15 @@ should be considered together. This draft does not claim an authoritative
 native per-instance on-chain active count or exact backend-selection indicator. The optional CSV collector supplies the active count and balance separately from Nimbus metrics.
 
 The fleet loaded-key count is suppressed if a selected client or its count metric
-is missing. Activity totals use available history, even when a client is now
-offline; consult the scrape availability panel. That panel covers observed scrape
-samples only, not missing history before startup or while Prometheus was stopped.
-No missing activity metric is converted to a healthy-looking zero. The clients'
-native process counters are not durable lifetime totals.
+is missing. Activity cards and client-table totals use native submission counters
+since each client restarted, evaluated at the selected range end. They do not
+shrink to the selected range duration or Prometheus retention window. The fleet
+sum combines clients with potentially different restart times and is withheld
+when any selected client is offline or missing its counter; individual unavailable
+values remain blank. Rate charts continue to show interval activity. No missing
+metric is converted to zero. A client restart resets its counters: these are not
+durable lifetime totals. Scrape availability covers observed samples only, not
+missing history before startup or while Prometheus was stopped.
 
 Nimbus metric definitions were checked against validator v26.7.0 and beacon
 v26.2.0. Live metric names, labels, fallback client

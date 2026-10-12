@@ -34,6 +34,21 @@ additional clients over SSH, with shared main/fallback backends. Multiple client
 processes on one machine and a backend without a fallback are not yet supported
 as dedicated configuration modes.
 
+## Activity totals
+
+In the source dashboard, Activity cards and client-table totals show each Nimbus
+client’s submission counters **since that client last restarted**, independent
+of the selected range length. Fleet totals combine those counters; clients may
+have restarted at different times. Use a range ending now for current values.
+A missing or offline client leaves its totals unavailable and suppresses the
+fleet total, rather than showing a partial sum. The rate graphs still follow the
+selected time range.
+
+This does not add lifetime storage: a validator restart resets its counters.
+Prometheus retention limits stored history, not the current counter reported by
+a running client. Submissions are not proof of on-chain inclusion. These source
+changes require a new image release before they appear in deployed dashboards.
+
 ## Restricted SSH access
 
 Use a dedicated monitoring account on each child and a monitoring-only key on
@@ -168,6 +183,14 @@ history; those live in the existing Docker volumes.
 **Availability:** supported from v0.5.0. Update both the Compose file and
 control image when upgrading from an older release. Existing installations
 default to local monitoring when the setting is omitted.
+
+### Upcoming proposals (source preview)
+
+The client table and each client overview can show remaining proposals in the
+current and next epoch, using the same public-key inventory. Failed or stale
+lookups show Unknown. This feature requires a new image build after v0.5.0.
+See [behavior and timing](deployment/UPCOMING_PROPOSALS.md) and
+[mock screenshots](monitoring/previews/upcoming-proposals/README.md).
 
 ### Optional: active validators and ETH balances
 

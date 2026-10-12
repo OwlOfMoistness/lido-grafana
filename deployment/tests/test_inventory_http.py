@@ -26,6 +26,7 @@ class InventoryHTTP(unittest.TestCase):
         funded = 'validator-1' if enabled=='true' else 'validator-3'
         pubkey='0x'+'01'*48
         requests=[]
+        genesis=int(time.time())-1205
         class Beacon(BaseHTTPRequestHandler):
             def reply(self,data):
                 body=json.dumps(data).encode()
@@ -36,6 +37,15 @@ class InventoryHTTP(unittest.TestCase):
                 requests.append(self.path)
                 if self.path.endswith('/syncing'):
                     self.reply({'data':{'is_syncing':False,'is_optimistic':False,'el_offline':False}})
+                elif self.path.endswith('/genesis'):
+                    self.reply({'data':{'genesis_time':str(genesis)}})
+                elif self.path.endswith('/spec'):
+                    self.reply({'data':{'SECONDS_PER_SLOT':'12','SLOTS_PER_EPOCH':'32'}})
+                elif '/duties/proposer/' in self.path:
+                    epoch=int(self.path.rsplit('/',1)[-1])
+                    self.reply({'execution_optimistic':False,'dependent_root':'0x'+'ab'*32,'data':[
+                        {'pubkey':pubkey if slot==105 else '0x'+'02'*48,'slot':str(slot),'validator_index':str(slot)}
+                        for slot in range(epoch*32,(epoch+1)*32)]})
                 else:
                     self.reply({'execution_optimistic':False,'data':{'canonical':True,'root':'0x'+'ab'*32,
                                 'header':{'message':{'slot':'100'}}}})
@@ -70,7 +80,7 @@ class InventoryHTTP(unittest.TestCase):
                         try:
                             with opener.open(f'http://127.0.0.1:{port}/metrics',timeout=1) as response:
                                 text=response.read().decode()
-                            if 'lido_inventory_active_balance_eth{' in text: break
+                            if 'lido_inventory_active_balance_eth{' in text and 'lido_proposals_upcoming{' in text: break
                         except OSError: pass
                         time.sleep(.05)
                     self.assertIn('lido_inventory_active_balance_eth{host="'+funded+'"} 32.123456789',text)
@@ -78,7 +88,9 @@ class InventoryHTTP(unittest.TestCase):
                     self.assertIn('lido_inventory_active_validators{host="validator-2"} 0',text)
                     self.assertNotIn(pubkey,text)
                     self.assertIn('/eth/v1/beacon/states/100/validators',requests)
-                    self.assertEqual(requests[-1],'/eth/v1/beacon/headers/100')
+                    self.assertIn('lido_proposals_upcoming{host="'+funded+'"} 1',text)
+                    self.assertIn('lido_proposals_upcoming{host="validator-2"} 0',text)
+                    self.assertIn('/eth/v1/validator/duties/proposer/4',requests)
                 finally:
                     process.terminate();process.communicate(timeout=5)
         finally:

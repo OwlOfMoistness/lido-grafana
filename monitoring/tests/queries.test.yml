@@ -1090,6 +1090,440 @@
           "exp_samples": []
         }
       ]
+    },
+    {
+      "name": "Upcoming proposals: fresh zero",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "up{job=\"validator\",host=\"validator-1\",instance=\"vc\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "up{job=\"inventory\",instance=\"collector\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_proposals_upcoming{job=\"inventory\",host=\"validator-1\"}",
+          "values": "0+0x10"
+        },
+        {
+          "series": "lido_proposals_success{job=\"inventory\",host=\"validator-1\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_proposals_timestamp_seconds{job=\"inventory\",host=\"validator-1\"}",
+          "values": "540+0x10"
+        },
+        {
+          "series": "lido_proposals_valid_until_seconds{job=\"inventory\",host=\"validator-1\"}",
+          "values": "630+0x10"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "max by(host) (lido_proposals_upcoming{job=\"inventory\",host=~\"validator-1\"} and on(host) (lido_proposals_success{job=\"inventory\",host=~\"validator-1\"} == 1) and on(host) (lido_proposals_valid_until_seconds{job=\"inventory\",host=~\"validator-1\"} > time()) and on(host) (time() - lido_proposals_timestamp_seconds{job=\"inventory\",host=~\"validator-1\"} < 90) and on(host) (lido_proposals_timestamp_seconds{job=\"inventory\",host=~\"validator-1\"} <= time()) and on() (up{job=\"inventory\"} == 1)) or on(host) (0 * max by(host) (up{job=\"validator\",host=~\"validator-1\"}) - 1)",
+          "eval_time": "10m",
+          "exp_samples": [
+            {
+              "labels": "{host=\"validator-1\"}",
+              "value": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Upcoming proposals: upcoming",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "up{job=\"validator\",host=\"validator-1\",instance=\"vc\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "up{job=\"inventory\",instance=\"collector\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_proposals_upcoming{job=\"inventory\",host=\"validator-1\"}",
+          "values": "2+0x10"
+        },
+        {
+          "series": "lido_proposals_success{job=\"inventory\",host=\"validator-1\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_proposals_timestamp_seconds{job=\"inventory\",host=\"validator-1\"}",
+          "values": "540+0x10"
+        },
+        {
+          "series": "lido_proposals_valid_until_seconds{job=\"inventory\",host=\"validator-1\"}",
+          "values": "630+0x10"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "max by(host) (lido_proposals_upcoming{job=\"inventory\",host=~\"validator-1\"} and on(host) (lido_proposals_success{job=\"inventory\",host=~\"validator-1\"} == 1) and on(host) (lido_proposals_valid_until_seconds{job=\"inventory\",host=~\"validator-1\"} > time()) and on(host) (time() - lido_proposals_timestamp_seconds{job=\"inventory\",host=~\"validator-1\"} < 90) and on(host) (lido_proposals_timestamp_seconds{job=\"inventory\",host=~\"validator-1\"} <= time()) and on() (up{job=\"inventory\"} == 1)) or on(host) (0 * max by(host) (up{job=\"validator\",host=~\"validator-1\"}) - 1)",
+          "eval_time": "10m",
+          "exp_samples": [
+            {
+              "labels": "{host=\"validator-1\"}",
+              "value": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Upcoming proposals: expired epoch",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "up{job=\"validator\",host=\"validator-1\",instance=\"vc\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "up{job=\"inventory\",instance=\"collector\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_proposals_upcoming{job=\"inventory\",host=\"validator-1\"}",
+          "values": "0+0x10"
+        },
+        {
+          "series": "lido_proposals_success{job=\"inventory\",host=\"validator-1\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_proposals_timestamp_seconds{job=\"inventory\",host=\"validator-1\"}",
+          "values": "540+0x10"
+        },
+        {
+          "series": "lido_proposals_valid_until_seconds{job=\"inventory\",host=\"validator-1\"}",
+          "values": "600+0x10"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "max by(host) (lido_proposals_upcoming{job=\"inventory\",host=~\"validator-1\"} and on(host) (lido_proposals_success{job=\"inventory\",host=~\"validator-1\"} == 1) and on(host) (lido_proposals_valid_until_seconds{job=\"inventory\",host=~\"validator-1\"} > time()) and on(host) (time() - lido_proposals_timestamp_seconds{job=\"inventory\",host=~\"validator-1\"} < 90) and on(host) (lido_proposals_timestamp_seconds{job=\"inventory\",host=~\"validator-1\"} <= time()) and on() (up{job=\"inventory\"} == 1)) or on(host) (0 * max by(host) (up{job=\"validator\",host=~\"validator-1\"}) - 1)",
+          "eval_time": "10m",
+          "exp_samples": [
+            {
+              "labels": "{host=\"validator-1\"}",
+              "value": -1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Upcoming proposals: stale",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "up{job=\"validator\",host=\"validator-1\",instance=\"vc\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "up{job=\"inventory\",instance=\"collector\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_proposals_upcoming{job=\"inventory\",host=\"validator-1\"}",
+          "values": "0+0x10"
+        },
+        {
+          "series": "lido_proposals_success{job=\"inventory\",host=\"validator-1\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_proposals_timestamp_seconds{job=\"inventory\",host=\"validator-1\"}",
+          "values": "510+0x10"
+        },
+        {
+          "series": "lido_proposals_valid_until_seconds{job=\"inventory\",host=\"validator-1\"}",
+          "values": "630+0x10"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "max by(host) (lido_proposals_upcoming{job=\"inventory\",host=~\"validator-1\"} and on(host) (lido_proposals_success{job=\"inventory\",host=~\"validator-1\"} == 1) and on(host) (lido_proposals_valid_until_seconds{job=\"inventory\",host=~\"validator-1\"} > time()) and on(host) (time() - lido_proposals_timestamp_seconds{job=\"inventory\",host=~\"validator-1\"} < 90) and on(host) (lido_proposals_timestamp_seconds{job=\"inventory\",host=~\"validator-1\"} <= time()) and on() (up{job=\"inventory\"} == 1)) or on(host) (0 * max by(host) (up{job=\"validator\",host=~\"validator-1\"}) - 1)",
+          "eval_time": "10m",
+          "exp_samples": [
+            {
+              "labels": "{host=\"validator-1\"}",
+              "value": -1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Upcoming proposals: failed",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "up{job=\"validator\",host=\"validator-1\",instance=\"vc\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "up{job=\"inventory\",instance=\"collector\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_proposals_upcoming{job=\"inventory\",host=\"validator-1\"}",
+          "values": "0+0x10"
+        },
+        {
+          "series": "lido_proposals_success{job=\"inventory\",host=\"validator-1\"}",
+          "values": "0+0x10"
+        },
+        {
+          "series": "lido_proposals_timestamp_seconds{job=\"inventory\",host=\"validator-1\"}",
+          "values": "540+0x10"
+        },
+        {
+          "series": "lido_proposals_valid_until_seconds{job=\"inventory\",host=\"validator-1\"}",
+          "values": "630+0x10"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "max by(host) (lido_proposals_upcoming{job=\"inventory\",host=~\"validator-1\"} and on(host) (lido_proposals_success{job=\"inventory\",host=~\"validator-1\"} == 1) and on(host) (lido_proposals_valid_until_seconds{job=\"inventory\",host=~\"validator-1\"} > time()) and on(host) (time() - lido_proposals_timestamp_seconds{job=\"inventory\",host=~\"validator-1\"} < 90) and on(host) (lido_proposals_timestamp_seconds{job=\"inventory\",host=~\"validator-1\"} <= time()) and on() (up{job=\"inventory\"} == 1)) or on(host) (0 * max by(host) (up{job=\"validator\",host=~\"validator-1\"}) - 1)",
+          "eval_time": "10m",
+          "exp_samples": [
+            {
+              "labels": "{host=\"validator-1\"}",
+              "value": -1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Upcoming proposals: collector down",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "up{job=\"validator\",host=\"validator-1\",instance=\"vc\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "up{job=\"inventory\",instance=\"collector\"}",
+          "values": "0+0x10"
+        },
+        {
+          "series": "lido_proposals_upcoming{job=\"inventory\",host=\"validator-1\"}",
+          "values": "0+0x10"
+        },
+        {
+          "series": "lido_proposals_success{job=\"inventory\",host=\"validator-1\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_proposals_timestamp_seconds{job=\"inventory\",host=\"validator-1\"}",
+          "values": "540+0x10"
+        },
+        {
+          "series": "lido_proposals_valid_until_seconds{job=\"inventory\",host=\"validator-1\"}",
+          "values": "630+0x10"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "max by(host) (lido_proposals_upcoming{job=\"inventory\",host=~\"validator-1\"} and on(host) (lido_proposals_success{job=\"inventory\",host=~\"validator-1\"} == 1) and on(host) (lido_proposals_valid_until_seconds{job=\"inventory\",host=~\"validator-1\"} > time()) and on(host) (time() - lido_proposals_timestamp_seconds{job=\"inventory\",host=~\"validator-1\"} < 90) and on(host) (lido_proposals_timestamp_seconds{job=\"inventory\",host=~\"validator-1\"} <= time()) and on() (up{job=\"inventory\"} == 1)) or on(host) (0 * max by(host) (up{job=\"validator\",host=~\"validator-1\"}) - 1)",
+          "eval_time": "10m",
+          "exp_samples": [
+            {
+              "labels": "{host=\"validator-1\"}",
+              "value": -1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Upcoming proposals: future clock",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "up{job=\"validator\",host=\"validator-1\",instance=\"vc\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "up{job=\"inventory\",instance=\"collector\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_proposals_upcoming{job=\"inventory\",host=\"validator-1\"}",
+          "values": "0+0x10"
+        },
+        {
+          "series": "lido_proposals_success{job=\"inventory\",host=\"validator-1\"}",
+          "values": "1+0x10"
+        },
+        {
+          "series": "lido_proposals_timestamp_seconds{job=\"inventory\",host=\"validator-1\"}",
+          "values": "601+0x10"
+        },
+        {
+          "series": "lido_proposals_valid_until_seconds{job=\"inventory\",host=\"validator-1\"}",
+          "values": "630+0x10"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "max by(host) (lido_proposals_upcoming{job=\"inventory\",host=~\"validator-1\"} and on(host) (lido_proposals_success{job=\"inventory\",host=~\"validator-1\"} == 1) and on(host) (lido_proposals_valid_until_seconds{job=\"inventory\",host=~\"validator-1\"} > time()) and on(host) (time() - lido_proposals_timestamp_seconds{job=\"inventory\",host=~\"validator-1\"} < 90) and on(host) (lido_proposals_timestamp_seconds{job=\"inventory\",host=~\"validator-1\"} <= time()) and on() (up{job=\"inventory\"} == 1)) or on(host) (0 * max by(host) (up{job=\"validator\",host=~\"validator-1\"}) - 1)",
+          "eval_time": "10m",
+          "exp_samples": [
+            {
+              "labels": "{host=\"validator-1\"}",
+              "value": -1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Missing proposal metrics remain unknown",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "up{job=\"validator\",host=\"validator-1\"}",
+          "values": "1+0x10"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "max by(host) (lido_proposals_upcoming{job=\"inventory\",host=~\"validator-1\"} and on(host) (lido_proposals_success{job=\"inventory\",host=~\"validator-1\"} == 1) and on(host) (lido_proposals_valid_until_seconds{job=\"inventory\",host=~\"validator-1\"} > time()) and on(host) (time() - lido_proposals_timestamp_seconds{job=\"inventory\",host=~\"validator-1\"} < 90) and on(host) (lido_proposals_timestamp_seconds{job=\"inventory\",host=~\"validator-1\"} <= time()) and on() (up{job=\"inventory\"} == 1)) or on(host) (0 * max by(host) (up{job=\"validator\",host=~\"validator-1\"}) - 1)",
+          "eval_time": "10m",
+          "exp_samples": [
+            {
+              "labels": "{host=\"validator-1\"}",
+              "value": -1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Raw beacon_attestations_sent_total totals retain pre-window activity and reset with the client; outages never become zero",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "beacon_attestations_sent_total{job=\"validator\",instance=\"v1\",host=\"validator-1\"}",
+          "values": "10000000 10000010 2 3"
+        },
+        {
+          "series": "beacon_attestations_sent_total{job=\"validator\",instance=\"v2\",host=\"validator-2\"}",
+          "values": "20 21 22 23"
+        },
+        {
+          "series": "up{job=\"validator\",instance=\"v1\",host=\"validator-1\"}",
+          "values": "1 1 1 1"
+        },
+        {
+          "series": "up{job=\"validator\",instance=\"v2\",host=\"validator-2\"}",
+          "values": "1 1 1 0"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "sum((beacon_attestations_sent_total{job=\"validator\",host=~\"validator-1|validator-2\"} and on(job, instance) (up{job=\"validator\",host=~\"validator-1|validator-2\"} == 1))) and on() (count((beacon_attestations_sent_total{job=\"validator\",host=~\"validator-1|validator-2\"} and on(job, instance) (up{job=\"validator\",host=~\"validator-1|validator-2\"} == 1))) == count(up{job=\"validator\",host=~\"validator-1|validator-2\"}))",
+          "eval_time": "1m",
+          "exp_samples": [
+            {
+              "labels": "{}",
+              "value": 10000031
+            }
+          ]
+        },
+        {
+          "expr": "sum((beacon_attestations_sent_total{job=\"validator\",host=~\"validator-1|validator-2\"} and on(job, instance) (up{job=\"validator\",host=~\"validator-1|validator-2\"} == 1))) and on() (count((beacon_attestations_sent_total{job=\"validator\",host=~\"validator-1|validator-2\"} and on(job, instance) (up{job=\"validator\",host=~\"validator-1|validator-2\"} == 1))) == count(up{job=\"validator\",host=~\"validator-1|validator-2\"}))",
+          "eval_time": "2m",
+          "exp_samples": [
+            {
+              "labels": "{}",
+              "value": 24
+            }
+          ]
+        },
+        {
+          "expr": "sum((beacon_attestations_sent_total{job=\"validator\",host=~\"validator-1|validator-2\"} and on(job, instance) (up{job=\"validator\",host=~\"validator-1|validator-2\"} == 1))) and on() (count((beacon_attestations_sent_total{job=\"validator\",host=~\"validator-1|validator-2\"} and on(job, instance) (up{job=\"validator\",host=~\"validator-1|validator-2\"} == 1))) == count(up{job=\"validator\",host=~\"validator-1|validator-2\"}))",
+          "eval_time": "3m",
+          "exp_samples": []
+        },
+        {
+          "expr": "sum by(host) ((beacon_attestations_sent_total{job=\"validator\",host=~\"validator-1|validator-2\"} and on(job, instance) (up{job=\"validator\",host=~\"validator-1|validator-2\"} == 1)))",
+          "eval_time": "3m",
+          "exp_samples": [
+            {
+              "labels": "{host=\"validator-1\"}",
+              "value": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Raw beacon_blocks_sent_total totals retain pre-window activity and reset with the client; outages never become zero",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "beacon_blocks_sent_total{job=\"validator\",instance=\"v1\",host=\"validator-1\"}",
+          "values": "10000000 10000010 2 3"
+        },
+        {
+          "series": "beacon_blocks_sent_total{job=\"validator\",instance=\"v2\",host=\"validator-2\"}",
+          "values": "20 21 22 23"
+        },
+        {
+          "series": "up{job=\"validator\",instance=\"v1\",host=\"validator-1\"}",
+          "values": "1 1 1 1"
+        },
+        {
+          "series": "up{job=\"validator\",instance=\"v2\",host=\"validator-2\"}",
+          "values": "1 1 1 0"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "sum((beacon_blocks_sent_total{job=\"validator\",host=~\"validator-1|validator-2\"} and on(job, instance) (up{job=\"validator\",host=~\"validator-1|validator-2\"} == 1))) and on() (count((beacon_blocks_sent_total{job=\"validator\",host=~\"validator-1|validator-2\"} and on(job, instance) (up{job=\"validator\",host=~\"validator-1|validator-2\"} == 1))) == count(up{job=\"validator\",host=~\"validator-1|validator-2\"}))",
+          "eval_time": "1m",
+          "exp_samples": [
+            {
+              "labels": "{}",
+              "value": 10000031
+            }
+          ]
+        },
+        {
+          "expr": "sum((beacon_blocks_sent_total{job=\"validator\",host=~\"validator-1|validator-2\"} and on(job, instance) (up{job=\"validator\",host=~\"validator-1|validator-2\"} == 1))) and on() (count((beacon_blocks_sent_total{job=\"validator\",host=~\"validator-1|validator-2\"} and on(job, instance) (up{job=\"validator\",host=~\"validator-1|validator-2\"} == 1))) == count(up{job=\"validator\",host=~\"validator-1|validator-2\"}))",
+          "eval_time": "2m",
+          "exp_samples": [
+            {
+              "labels": "{}",
+              "value": 24
+            }
+          ]
+        },
+        {
+          "expr": "sum((beacon_blocks_sent_total{job=\"validator\",host=~\"validator-1|validator-2\"} and on(job, instance) (up{job=\"validator\",host=~\"validator-1|validator-2\"} == 1))) and on() (count((beacon_blocks_sent_total{job=\"validator\",host=~\"validator-1|validator-2\"} and on(job, instance) (up{job=\"validator\",host=~\"validator-1|validator-2\"} == 1))) == count(up{job=\"validator\",host=~\"validator-1|validator-2\"}))",
+          "eval_time": "3m",
+          "exp_samples": []
+        },
+        {
+          "expr": "sum by(host) ((beacon_blocks_sent_total{job=\"validator\",host=~\"validator-1|validator-2\"} and on(job, instance) (up{job=\"validator\",host=~\"validator-1|validator-2\"} == 1)))",
+          "eval_time": "3m",
+          "exp_samples": [
+            {
+              "labels": "{host=\"validator-1\"}",
+              "value": 3
+            }
+          ]
+        }
+      ]
     }
   ]
 }
