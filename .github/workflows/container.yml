@@ -1,4 +1,4 @@
-name: Validate and publish container
+name: Validate and publish applications
 
 on:
   pull_request:
@@ -16,7 +16,34 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  validator-watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Test duty outcomes, storage, notifications and dashboards
+        run: python3 -m unittest discover -s apps/validator-watch/tests -v
+      - name: Check generated dashboards and Compose
+        env:
+          BEACON_URL: http://127.0.0.1:5552
+          GRAFANA_ADMIN_PASSWORD: ci-only-synthetic-password
+        run: |
+          python3 apps/validator-watch/grafana/build_dashboards.py
+          git diff --exit-code -- apps/validator-watch/grafana/dashboards
+          docker compose --env-file apps/validator-watch/.env.example \
+            -f apps/validator-watch/compose.yml config --quiet
+      - name: Build and smoke-test Validator Watch
+        run: |
+          docker build --tag validator-watch:ci apps/validator-watch
+          docker run --rm --network none --read-only --cap-drop ALL \
+            --security-opt no-new-privileges:true validator-watch:ci --help
+
   validate:
+    defaults:
+      run:
+        working-directory: apps/lido-grafana
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -75,7 +102,18 @@ jobs:
             test rules /tests/queries.test.yml
 
   publish:
-    needs: validate
+    name: Publish ${{ matrix.app }}
+    needs: [validate, validator-watch]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: lido-grafana
+            context: apps/lido-grafana
+            dockerfile: apps/lido-grafana/deployment/Dockerfile
+          - app: validator-watch
+            context: apps/validator-watch
+            dockerfile: apps/validator-watch/Dockerfile
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -89,7 +127,9 @@ jobs:
 
       - name: Resolve lowercase image name
         id: image
-        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+        env:
+          APP_NAME: ${{ matrix.app }}
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${APP_NAME}" >> "$GITHUB_OUTPUT"
 
       - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
@@ -115,13 +155,13 @@ jobs:
       - name: Build and publish AMD64 and ARM64
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
-          context: .
-          file: deployment/Dockerfile
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           provenance: mode=min
           sbom: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}

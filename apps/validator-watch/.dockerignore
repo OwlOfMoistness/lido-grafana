@@ -1,0 +1,9 @@
+**
+!Dockerfile
+!probe.py
+!watch/
+!watch/*.py
+!grafana/
+!grafana/**
+**/__pycache__/**
+**/*.pyc

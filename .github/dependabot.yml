@@ -5,6 +5,10 @@ updates:
     schedule:
       interval: monthly
   - package-ecosystem: docker
-    directory: /deployment
+    directory: /apps/lido-grafana/deployment
+    schedule:
+      interval: monthly
+  - package-ecosystem: docker
+    directory: /apps/validator-watch
     schedule:
       interval: monthly

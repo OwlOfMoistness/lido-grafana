@@ -1,0 +1,69 @@
+name: validator-watch
+x-app: &app
+  image: ${WATCH_IMAGE:-ghcr.io/owlofmoistness/validator-watch:0.6.0}
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+services:
+  configure:
+    <<: *app
+    network_mode: none
+    command: [configure]
+    volumes:
+      - watch-config:/provisioned
+  collector:
+    <<: *app
+    restart: unless-stopped
+    network_mode: host
+    command: [serve]
+    environment:
+      BEACON_URL: ${BEACON_URL:?Set the designated fallback beacon REST URL}
+      PRIMARY_HEALTH_URL: ${PRIMARY_HEALTH_URL:-}
+      INVENTORY_DIR: /inventory
+      DATABASE_PATH: /data/watch.sqlite
+      RETENTION_DAYS: ${RETENTION_DAYS:-30}
+      ATTESTATION_ISSUE_PER_THOUSAND: ${ATTESTATION_ISSUE_PER_THOUSAND:-10}
+      ATTESTATION_ISSUE_EPOCHS: ${ATTESTATION_ISSUE_EPOCHS:-2}
+      COLLECTOR_ALERT_AFTER_SECONDS: ${COLLECTOR_ALERT_AFTER_SECONDS:-300}
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      DISCORD_WEBHOOK_FILE: ${DISCORD_WEBHOOK_FILE:-}
+    volumes:
+      - watch-data:/data
+      - type: bind
+        source: ${INVENTORY_DIR:-./inventory}
+        target: /inventory
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${SECRETS_DIR:-./secrets}
+        target: /run/secrets
+        read_only: true
+        bind:
+          create_host_path: true
+    logging:
+      driver: json-file
+      options: {max-size: 5m, max-file: '2'}
+  grafana:
+    image: grafana/grafana:13.2.2
+    restart: unless-stopped
+    ports:
+      - 127.0.0.1:${WATCH_GRAFANA_PORT:-3306}:3000
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set a unique Grafana password}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_AUTH_ANONYMOUS_ENABLED: 'false'
+      GF_ANALYTICS_REPORTING_ENABLED: 'false'
+      GF_PLUGINS_PREINSTALL_SYNC: frser-sqlite-datasource@4.0.6
+      GF_PATHS_PROVISIONING: /watch-config/provisioning
+    depends_on:
+      configure: {condition: service_completed_successfully}
+      collector: {condition: service_started}
+    volumes:
+      - watch-config:/watch-config:ro
+      - watch-data:/watch-data:ro
+      - watch-grafana:/var/lib/grafana
+volumes:
+  watch-data:
+  watch-config:
+  watch-grafana:

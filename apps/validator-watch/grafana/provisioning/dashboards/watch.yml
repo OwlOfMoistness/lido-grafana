@@ -1,0 +1,9 @@
+apiVersion: 1
+providers:
+  - name: Validator Watch
+    folder: Validator Watch
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    options:
+      path: /watch-config/dashboards

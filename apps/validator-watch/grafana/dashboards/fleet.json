@@ -1,0 +1,2425 @@
+{
+  "uid": "validator-watch",
+  "title": "Validator Watch \u00b7 Fleet incidents",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "tags": [
+    "validator-watch"
+  ],
+  "timezone": "utc",
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "refresh": "1m",
+  "templating": {
+    "list": [
+      {
+        "name": "client",
+        "label": "Client",
+        "type": "query",
+        "datasource": {
+          "type": "frser-sqlite-datasource",
+          "uid": "validator-watch"
+        },
+        "query": "SELECT DISTINCT client FROM summary ORDER BY client",
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": []
+      }
+    ]
+  },
+  "links": [
+    {
+      "title": "Fleet incidents",
+      "type": "link",
+      "url": "/d/validator-watch",
+      "includeVars": true,
+      "keepTime": true
+    },
+    {
+      "title": "Validator detail",
+      "type": "link",
+      "url": "/d/validator-watch-detail",
+      "includeVars": true,
+      "keepTime": true
+    }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Collector",
+      "type": "stat",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 4,
+        "h": 3
+      },
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "validator-watch"
+      },
+      "description": "Affected = attestations missing at least one flag. Issue points = total missing source/target/head flags. Checked = observed attestation duties. Finalized observations only. Summary counts include whole hourly buckets. Coverage describes attempted epochs, not time before startup.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "validator-watch"
+          },
+          "rawQueryText": "SELECT CASE WHEN value='MOCK DATA' THEN value WHEN CAST((SELECT value FROM meta WHERE key='heartbeat') AS REAL)<strftime('%s','now')-600 THEN 'Stale' ELSE value END FROM meta WHERE key='collector_state'",
+          "queryText": "SELECT CASE WHEN value='MOCK DATA' THEN value WHEN CAST((SELECT value FROM meta WHERE key='heartbeat') AS REAL)<strftime('%s','now')-600 THEN 'Stale' ELSE value END FROM meta WHERE key='collector_state'",
+          "queryType": "table",
+          "timeColumns": [
+            "time"
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "string",
+          "decimals": 0,
+          "noValue": "No checked data",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "healthy": {
+                  "text": "healthy",
+                  "color": "green"
+                },
+                "waiting": {
+                  "text": "waiting",
+                  "color": "yellow"
+                },
+                "unknown": {
+                  "text": "unknown",
+                  "color": "red"
+                },
+                "Stale": {
+                  "text": "Stale",
+                  "color": "red"
+                },
+                "MOCK DATA": {
+                  "text": "MOCK DATA",
+                  "color": "blue"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/",
+          "values": false
+        },
+        "textMode": "value",
+        "graphMode": "none",
+        "colorMode": "value",
+        "text": {
+          "valueSize": 22
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Missed blocks",
+      "type": "stat",
+      "gridPos": {
+        "x": 4,
+        "y": 0,
+        "w": 4,
+        "h": 3
+      },
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "validator-watch"
+      },
+      "description": "Affected = attestations missing at least one flag. Issue points = total missing source/target/head flags. Checked = observed attestation duties. Finalized observations only. Summary counts include whole hourly buckets. Coverage describes attempted epochs, not time before startup.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "validator-watch"
+          },
+          "rawQueryText": "SELECT count(*) FROM events WHERE time >= $__from/1000 AND time <= $__to/1000 AND client IN (${client:sqlstring}) AND kind='proposal' AND status='missed'",
+          "queryText": "SELECT count(*) FROM events WHERE time >= $__from/1000 AND time <= $__to/1000 AND client IN (${client:sqlstring}) AND kind='proposal' AND status='missed'",
+          "queryType": "table",
+          "timeColumns": [
+            "time"
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "No checked data",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "graphMode": "none",
+        "colorMode": "value",
+        "text": {
+          "valueSize": 28
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Affected",
+      "type": "stat",
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 4,
+        "h": 3
+      },
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "validator-watch"
+      },
+      "description": "Affected = attestations missing at least one flag. Issue points = total missing source/target/head flags. Checked = observed attestation duties. Finalized observations only. Summary counts include whole hourly buckets. Coverage describes attempted epochs, not time before startup.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "validator-watch"
+          },
+          "rawQueryText": "SELECT sum(affected) FROM summary WHERE bucket >= CAST($__from / 3600000 AS INTEGER)*3600 AND bucket <= $__to/1000 AND client IN (${client:sqlstring})",
+          "queryText": "SELECT sum(affected) FROM summary WHERE bucket >= CAST($__from / 3600000 AS INTEGER)*3600 AND bucket <= $__to/1000 AND client IN (${client:sqlstring})",
+          "queryType": "table",
+          "timeColumns": [
+            "time"
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "No checked data",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "graphMode": "none",
+        "colorMode": "value",
+        "text": {
+          "valueSize": 28
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Issue points",
+      "type": "stat",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 4,
+        "h": 3
+      },
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "validator-watch"
+      },
+      "description": "Affected = attestations missing at least one flag. Issue points = total missing source/target/head flags. Checked = observed attestation duties. Finalized observations only. Summary counts include whole hourly buckets. Coverage describes attempted epochs, not time before startup.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "validator-watch"
+          },
+          "rawQueryText": "SELECT sum(source_miss+target_miss+head_miss) FROM summary WHERE bucket >= CAST($__from / 3600000 AS INTEGER)*3600 AND bucket <= $__to/1000 AND client IN (${client:sqlstring})",
+          "queryText": "SELECT sum(source_miss+target_miss+head_miss) FROM summary WHERE bucket >= CAST($__from / 3600000 AS INTEGER)*3600 AND bucket <= $__to/1000 AND client IN (${client:sqlstring})",
+          "queryType": "table",
+          "timeColumns": [
+            "time"
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "No checked data",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "graphMode": "none",
+        "colorMode": "value",
+        "text": {
+          "valueSize": 28
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Checked",
+      "type": "stat",
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 4,
+        "h": 3
+      },
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "validator-watch"
+      },
+      "description": "Affected = attestations missing at least one flag. Issue points = total missing source/target/head flags. Checked = observed attestation duties. Finalized observations only. Summary counts include whole hourly buckets. Coverage describes attempted epochs, not time before startup.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "validator-watch"
+          },
+          "rawQueryText": "SELECT sum(expected) FROM summary WHERE bucket >= CAST($__from / 3600000 AS INTEGER)*3600 AND bucket <= $__to/1000 AND client IN (${client:sqlstring})",
+          "queryText": "SELECT sum(expected) FROM summary WHERE bucket >= CAST($__from / 3600000 AS INTEGER)*3600 AND bucket <= $__to/1000 AND client IN (${client:sqlstring})",
+          "queryType": "table",
+          "timeColumns": [
+            "time"
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "No checked data",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "graphMode": "none",
+        "colorMode": "value",
+        "text": {
+          "valueSize": 28
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Coverage",
+      "type": "stat",
+      "gridPos": {
+        "x": 20,
+        "y": 0,
+        "w": 4,
+        "h": 3
+      },
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "validator-watch"
+      },
+      "description": "Affected = attestations missing at least one flag. Issue points = total missing source/target/head flags. Checked = observed attestation duties. Finalized observations only. Summary counts include whole hourly buckets. Coverage describes attempted epochs, not time before startup.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "validator-watch"
+          },
+          "rawQueryText": "SELECT 100.0*sum(status='checked')/count(*) FROM epochs WHERE time >= $__from/1000 AND time <= $__to/1000",
+          "queryText": "SELECT 100.0*sum(status='checked')/count(*) FROM epochs WHERE time >= $__from/1000 AND time <= $__to/1000",
+          "queryType": "table",
+          "timeColumns": [
+            "time"
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "noValue": "No checked data",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "graphMode": "none",
+        "colorMode": "value",
+        "text": {
+          "valueSize": 28
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Component issues \u00b7 hourly",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 3,
+        "w": 14,
+        "h": 6
+      },
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "validator-watch"
+      },
+      "description": "",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "validator-watch"
+          },
+          "rawQueryText": "WITH RECURSIVE hours(t) AS (SELECT CAST($__from/3600000 AS INTEGER)*3600 UNION ALL SELECT t+3600 FROM hours WHERE t+3600 <= $__to/1000 LIMIT 9000), totals AS (SELECT bucket,sum(source_miss) AS Source,sum(target_miss) AS Target,sum(head_miss) AS Head FROM summary WHERE bucket >= CAST($__from / 3600000 AS INTEGER)*3600 AND bucket <= $__to/1000 AND client IN (${client:sqlstring}) GROUP BY bucket) SELECT t AS time,Source,Target,Head FROM hours LEFT JOIN totals ON totals.bucket=hours.t ORDER BY t",
+          "queryText": "WITH RECURSIVE hours(t) AS (SELECT CAST($__from/3600000 AS INTEGER)*3600 UNION ALL SELECT t+3600 FROM hours WHERE t+3600 <= $__to/1000 LIMIT 9000), totals AS (SELECT bucket,sum(source_miss) AS Source,sum(target_miss) AS Target,sum(head_miss) AS Head FROM summary WHERE bucket >= CAST($__from / 3600000 AS INTEGER)*3600 AND bucket <= $__to/1000 AND client IN (${client:sqlstring}) GROUP BY bucket) SELECT t AS time,Source,Target,Head FROM hours LEFT JOIN totals ON totals.bucket=hours.t ORDER BY t",
+          "queryType": "table",
+          "timeColumns": [
+            "time"
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "No checked data",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "axisSoftMin": 0
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Source"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Target"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Head"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "Proposal outcomes \u00b7 finalized",
+      "type": "table",
+      "gridPos": {
+        "x": 14,
+        "y": 3,
+        "w": 10,
+        "h": 6
+      },
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "validator-watch"
+      },
+      "description": "Scheduled slot time, not network submission time. Misses require complete canonical evidence.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "validator-watch"
+          },
+          "rawQueryText": "SELECT time,client AS Client,slot AS Slot,status AS Outcome FROM events WHERE time >= $__from/1000 AND time <= $__to/1000 AND client IN (${client:sqlstring}) AND kind='proposal' ORDER BY time DESC LIMIT 50",
+          "queryText": "SELECT time,client AS Client,slot AS Slot,status AS Outcome FROM events WHERE time >= $__from/1000 AND time <= $__to/1000 AND client IN (${client:sqlstring}) AND kind='proposal' ORDER BY time DESC LIMIT 50",
+          "queryType": "table",
+          "timeColumns": [
+            "time"
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "\u2014",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "minWidth": 55
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Client"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "string"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "time"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 170
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Outcome"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "included": {
+                        "text": "included",
+                        "color": "green"
+                      },
+                      "\u2713": {
+                        "text": "\u2713",
+                        "color": "green"
+                      },
+                      "checked": {
+                        "text": "checked",
+                        "color": "green"
+                      },
+                      "sent": {
+                        "text": "sent",
+                        "color": "green"
+                      },
+                      "missed": {
+                        "text": "missed",
+                        "color": "red"
+                      },
+                      "Miss": {
+                        "text": "Miss",
+                        "color": "red"
+                      },
+                      "failed": {
+                        "text": "failed",
+                        "color": "red"
+                      },
+                      "unknown": {
+                        "text": "unknown",
+                        "color": "yellow"
+                      },
+                      "pending": {
+                        "text": "pending",
+                        "color": "yellow"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Source"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "included": {
+                        "text": "included",
+                        "color": "green"
+                      },
+                      "\u2713": {
+                        "text": "\u2713",
+                        "color": "green"
+                      },
+                      "checked": {
+                        "text": "checked",
+                        "color": "green"
+                      },
+                      "sent": {
+                        "text": "sent",
+                        "color": "green"
+                      },
+                      "missed": {
+                        "text": "missed",
+                        "color": "red"
+                      },
+                      "Miss": {
+                        "text": "Miss",
+                        "color": "red"
+                      },
+                      "failed": {
+                        "text": "failed",
+                        "color": "red"
+                      },
+                      "unknown": {
+                        "text": "unknown",
+                        "color": "yellow"
+                      },
+                      "pending": {
+                        "text": "pending",
+                        "color": "yellow"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Target"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "included": {
+                        "text": "included",
+                        "color": "green"
+                      },
+                      "\u2713": {
+                        "text": "\u2713",
+                        "color": "green"
+                      },
+                      "checked": {
+                        "text": "checked",
+                        "color": "green"
+                      },
+                      "sent": {
+                        "text": "sent",
+                        "color": "green"
+                      },
+                      "missed": {
+                        "text": "missed",
+                        "color": "red"
+                      },
+                      "Miss": {
+                        "text": "Miss",
+                        "color": "red"
+                      },
+                      "failed": {
+                        "text": "failed",
+                        "color": "red"
+                      },
+                      "unknown": {
+                        "text": "unknown",
+                        "color": "yellow"
+                      },
+                      "pending": {
+                        "text": "pending",
+                        "color": "yellow"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Head"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "included": {
+                        "text": "included",
+                        "color": "green"
+                      },
+                      "\u2713": {
+                        "text": "\u2713",
+                        "color": "green"
+                      },
+                      "checked": {
+                        "text": "checked",
+                        "color": "green"
+                      },
+                      "sent": {
+                        "text": "sent",
+                        "color": "green"
+                      },
+                      "missed": {
+                        "text": "missed",
+                        "color": "red"
+                      },
+                      "Miss": {
+                        "text": "Miss",
+                        "color": "red"
+                      },
+                      "failed": {
+                        "text": "failed",
+                        "color": "red"
+                      },
+                      "unknown": {
+                        "text": "unknown",
+                        "color": "yellow"
+                      },
+                      "pending": {
+                        "text": "pending",
+                        "color": "yellow"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Coverage"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "included": {
+                        "text": "included",
+                        "color": "green"
+                      },
+                      "\u2713": {
+                        "text": "\u2713",
+                        "color": "green"
+                      },
+                      "checked": {
+                        "text": "checked",
+                        "color": "green"
+                      },
+                      "sent": {
+                        "text": "sent",
+                        "color": "green"
+                      },
+                      "missed": {
+                        "text": "missed",
+                        "color": "red"
+                      },
+                      "Miss": {
+                        "text": "Miss",
+                        "color": "red"
+                      },
+                      "failed": {
+                        "text": "failed",
+                        "color": "red"
+                      },
+                      "unknown": {
+                        "text": "unknown",
+                        "color": "yellow"
+                      },
+                      "pending": {
+                        "text": "pending",
+                        "color": "yellow"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "State"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "included": {
+                        "text": "included",
+                        "color": "green"
+                      },
+                      "\u2713": {
+                        "text": "\u2713",
+                        "color": "green"
+                      },
+                      "checked": {
+                        "text": "checked",
+                        "color": "green"
+                      },
+                      "sent": {
+                        "text": "sent",
+                        "color": "green"
+                      },
+                      "missed": {
+                        "text": "missed",
+                        "color": "red"
+                      },
+                      "Miss": {
+                        "text": "Miss",
+                        "color": "red"
+                      },
+                      "failed": {
+                        "text": "failed",
+                        "color": "red"
+                      },
+                      "unknown": {
+                        "text": "unknown",
+                        "color": "yellow"
+                      },
+                      "pending": {
+                        "text": "pending",
+                        "color": "yellow"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "sortBy": []
+      }
+    },
+    {
+      "id": 9,
+      "title": "Clients \u00b7 observed duty issues",
+      "type": "table",
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 24,
+        "h": 6
+      },
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "validator-watch"
+      },
+      "description": "Each failed source/target/head flag adds one point. All-three failures add three. Sync counts committee positions, including duplicate assignments. Whole hourly buckets; at most 200 rows.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "validator-watch"
+          },
+          "rawQueryText": "SELECT client AS Client,\n       sum(expected) AS Checked,sum(affected) AS Affected,sum(source_miss) AS Source,sum(target_miss) AS Target,sum(head_miss) AS Head,\n       sum(source_miss+target_miss+head_miss) AS Points,round(100.0*sum(affected)/nullif(sum(expected),0),3) AS \"Issue %\",\n       sum(sync_missed) AS \"Sync missed\",sum(sync_unknown) AS \"Sync unknown\"\n       FROM summary WHERE bucket >= CAST($__from / 3600000 AS INTEGER)*3600 AND bucket <= $__to/1000 AND client IN (${client:sqlstring}) GROUP BY client ORDER BY Points DESC LIMIT 200",
+          "queryText": "SELECT client AS Client,\n       sum(expected) AS Checked,sum(affected) AS Affected,sum(source_miss) AS Source,sum(target_miss) AS Target,sum(head_miss) AS Head,\n       sum(source_miss+target_miss+head_miss) AS Points,round(100.0*sum(affected)/nullif(sum(expected),0),3) AS \"Issue %\",\n       sum(sync_missed) AS \"Sync missed\",sum(sync_unknown) AS \"Sync unknown\"\n       FROM summary WHERE bucket >= CAST($__from / 3600000 AS INTEGER)*3600 AND bucket <= $__to/1000 AND client IN (${client:sqlstring}) GROUP BY client ORDER BY Points DESC LIMIT 200",
+          "queryType": "table",
+          "timeColumns": [
+            "time"
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "\u2014",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "minWidth": 55
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Client"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "string"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Issue %"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 3
+              },
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Client"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Inspect client",
+                    "url": "/d/validator-watch-detail?var-client=${__value.raw}&from=$__from&to=$__to"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "sortBy": []
+      }
+    },
+    {
+      "id": 10,
+      "title": "Attestation exceptions \u00b7 good attestations omitted",
+      "type": "table",
+      "gridPos": {
+        "x": 0,
+        "y": 15,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "validator-watch"
+      },
+      "description": "Participation flags, not monetary rewards. No observed inclusion is different from proven failure to submit. Most recent 200 exceptions in the selected range.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "validator-watch"
+          },
+          "rawQueryText": "SELECT time,client AS Client,substr(pubkey,1,12)||'\u2026'||substr(pubkey,-6) AS Validator,epoch AS Epoch,\n       CASE source WHEN 1 THEN '\u2713' ELSE 'Miss' END AS Source,CASE target WHEN 1 THEN '\u2713' ELSE 'Miss' END AS Target,\n       CASE head WHEN 1 THEN '\u2713' ELSE 'Miss' END AS Head,score AS Points,delay AS \"Delay slots\",pubkey AS Pubkey\n       FROM events WHERE time >= $__from/1000 AND time <= $__to/1000 AND client IN (${client:sqlstring}) AND kind='attestation' ORDER BY time DESC LIMIT 200",
+          "queryText": "SELECT time,client AS Client,substr(pubkey,1,12)||'\u2026'||substr(pubkey,-6) AS Validator,epoch AS Epoch,\n       CASE source WHEN 1 THEN '\u2713' ELSE 'Miss' END AS Source,CASE target WHEN 1 THEN '\u2713' ELSE 'Miss' END AS Target,\n       CASE head WHEN 1 THEN '\u2713' ELSE 'Miss' END AS Head,score AS Points,delay AS \"Delay slots\",pubkey AS Pubkey\n       FROM events WHERE time >= $__from/1000 AND time <= $__to/1000 AND client IN (${client:sqlstring}) AND kind='attestation' ORDER BY time DESC LIMIT 200",
+          "queryType": "table",
+          "timeColumns": [
+            "time"
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "\u2014",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "minWidth": 55
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Client"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "string"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "time"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 170
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Validator"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 190
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Delay slots"
+            },
+            "properties": [
+              {
+                "id": "noValue",
+                "value": "No inclusion"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Pubkey"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "string"
+              },
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Validator"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Inspect validator",
+                    "url": "/d/validator-watch-detail?var-client=${__data.fields.Client}&var-validator=${__data.fields.Pubkey:raw}&from=$__from&to=$__to"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Outcome"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "included": {
+                        "text": "included",
+                        "color": "green"
+                      },
+                      "\u2713": {
+                        "text": "\u2713",
+                        "color": "green"
+                      },
+                      "checked": {
+                        "text": "checked",
+                        "color": "green"
+                      },
+                      "sent": {
+                        "text": "sent",
+                        "color": "green"
+                      },
+                      "missed": {
+                        "text": "missed",
+                        "color": "red"
+                      },
+                      "Miss": {
+                        "text": "Miss",
+                        "color": "red"
+                      },
+                      "failed": {
+                        "text": "failed",
+                        "color": "red"
+                      },
+                      "unknown": {
+                        "text": "unknown",
+                        "color": "yellow"
+                      },
+                      "pending": {
+                        "text": "pending",
+                        "color": "yellow"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Source"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "included": {
+                        "text": "included",
+                        "color": "green"
+                      },
+                      "\u2713": {
+                        "text": "\u2713",
+                        "color": "green"
+                      },
+                      "checked": {
+                        "text": "checked",
+                        "color": "green"
+                      },
+                      "sent": {
+                        "text": "sent",
+                        "color": "green"
+                      },
+                      "missed": {
+                        "text": "missed",
+                        "color": "red"
+                      },
+                      "Miss": {
+                        "text": "Miss",
+                        "color": "red"
+                      },
+                      "failed": {
+                        "text": "failed",
+                        "color": "red"
+                      },
+                      "unknown": {
+                        "text": "unknown",
+                        "color": "yellow"
+                      },
+                      "pending": {
+                        "text": "pending",
+                        "color": "yellow"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Target"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "included": {
+                        "text": "included",
+                        "color": "green"
+                      },
+                      "\u2713": {
+                        "text": "\u2713",
+                        "color": "green"
+                      },
+                      "checked": {
+                        "text": "checked",
+                        "color": "green"
+                      },
+                      "sent": {
+                        "text": "sent",
+                        "color": "green"
+                      },
+                      "missed": {
+                        "text": "missed",
+                        "color": "red"
+                      },
+                      "Miss": {
+                        "text": "Miss",
+                        "color": "red"
+                      },
+                      "failed": {
+                        "text": "failed",
+                        "color": "red"
+                      },
+                      "unknown": {
+                        "text": "unknown",
+                        "color": "yellow"
+                      },
+                      "pending": {
+                        "text": "pending",
+                        "color": "yellow"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Head"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "included": {
+                        "text": "included",
+                        "color": "green"
+                      },
+                      "\u2713": {
+                        "text": "\u2713",
+                        "color": "green"
+                      },
+                      "checked": {
+                        "text": "checked",
+                        "color": "green"
+                      },
+                      "sent": {
+                        "text": "sent",
+                        "color": "green"
+                      },
+                      "missed": {
+                        "text": "missed",
+                        "color": "red"
+                      },
+                      "Miss": {
+                        "text": "Miss",
+                        "color": "red"
+                      },
+                      "failed": {
+                        "text": "failed",
+                        "color": "red"
+                      },
+                      "unknown": {
+                        "text": "unknown",
+                        "color": "yellow"
+                      },
+                      "pending": {
+                        "text": "pending",
+                        "color": "yellow"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Coverage"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "included": {
+                        "text": "included",
+                        "color": "green"
+                      },
+                      "\u2713": {
+                        "text": "\u2713",
+                        "color": "green"
+                      },
+                      "checked": {
+                        "text": "checked",
+                        "color": "green"
+                      },
+                      "sent": {
+                        "text": "sent",
+                        "color": "green"
+                      },
+                      "missed": {
+                        "text": "missed",
+                        "color": "red"
+                      },
+                      "Miss": {
+                        "text": "Miss",
+                        "color": "red"
+                      },
+                      "failed": {
+                        "text": "failed",
+                        "color": "red"
+                      },
+                      "unknown": {
+                        "text": "unknown",
+                        "color": "yellow"
+                      },
+                      "pending": {
+                        "text": "pending",
+                        "color": "yellow"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "State"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "included": {
+                        "text": "included",
+                        "color": "green"
+                      },
+                      "\u2713": {
+                        "text": "\u2713",
+                        "color": "green"
+                      },
+                      "checked": {
+                        "text": "checked",
+                        "color": "green"
+                      },
+                      "sent": {
+                        "text": "sent",
+                        "color": "green"
+                      },
+                      "missed": {
+                        "text": "missed",
+                        "color": "red"
+                      },
+                      "Miss": {
+                        "text": "Miss",
+                        "color": "red"
+                      },
+                      "failed": {
+                        "text": "failed",
+                        "color": "red"
+                      },
+                      "unknown": {
+                        "text": "unknown",
+                        "color": "yellow"
+                      },
+                      "pending": {
+                        "text": "pending",
+                        "color": "yellow"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "sortBy": []
+      }
+    },
+    {
+      "id": 11,
+      "title": "Collection coverage \u00b7 unknown is not a validator failure",
+      "type": "table",
+      "gridPos": {
+        "x": 0,
+        "y": 23,
+        "w": 14,
+        "h": 6
+      },
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "validator-watch"
+      },
+      "description": "",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "validator-watch"
+          },
+          "rawQueryText": "SELECT time,epoch AS Epoch,status AS Coverage,reason AS Reason,unknown_keys AS \"Unregistered keys\" FROM epochs WHERE time >= $__from/1000 AND time <= $__to/1000 ORDER BY epoch DESC LIMIT 100",
+          "queryText": "SELECT time,epoch AS Epoch,status AS Coverage,reason AS Reason,unknown_keys AS \"Unregistered keys\" FROM epochs WHERE time >= $__from/1000 AND time <= $__to/1000 ORDER BY epoch DESC LIMIT 100",
+          "queryType": "table",
+          "timeColumns": [
+            "time"
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "\u2014",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "minWidth": 55
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "time"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 170
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Outcome"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "included": {
+                        "text": "included",
+                        "color": "green"
+                      },
+                      "\u2713": {
+                        "text": "\u2713",
+                        "color": "green"
+                      },
+                      "checked": {
+                        "text": "checked",
+                        "color": "green"
+                      },
+                      "sent": {
+                        "text": "sent",
+                        "color": "green"
+                      },
+                      "missed": {
+                        "text": "missed",
+                        "color": "red"
+                      },
+                      "Miss": {
+                        "text": "Miss",
+                        "color": "red"
+                      },
+                      "failed": {
+                        "text": "failed",
+                        "color": "red"
+                      },
+                      "unknown": {
+                        "text": "unknown",
+                        "color": "yellow"
+                      },
+                      "pending": {
+                        "text": "pending",
+                        "color": "yellow"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Source"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "included": {
+                        "text": "included",
+                        "color": "green"
+                      },
+                      "\u2713": {
+                        "text": "\u2713",
+                        "color": "green"
+                      },
+                      "checked": {
+                        "text": "checked",
+                        "color": "green"
+                      },
+                      "sent": {
+                        "text": "sent",
+                        "color": "green"
+                      },
+                      "missed": {
+                        "text": "missed",
+                        "color": "red"
+                      },
+                      "Miss": {
+                        "text": "Miss",
+                        "color": "red"
+                      },
+                      "failed": {
+                        "text": "failed",
+                        "color": "red"
+                      },
+                      "unknown": {
+                        "text": "unknown",
+                        "color": "yellow"
+                      },
+                      "pending": {
+                        "text": "pending",
+                        "color": "yellow"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Target"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "included": {
+                        "text": "included",
+                        "color": "green"
+                      },
+                      "\u2713": {
+                        "text": "\u2713",
+                        "color": "green"
+                      },
+                      "checked": {
+                        "text": "checked",
+                        "color": "green"
+                      },
+                      "sent": {
+                        "text": "sent",
+                        "color": "green"
+                      },
+                      "missed": {
+                        "text": "missed",
+                        "color": "red"
+                      },
+                      "Miss": {
+                        "text": "Miss",
+                        "color": "red"
+                      },
+                      "failed": {
+                        "text": "failed",
+                        "color": "red"
+                      },
+                      "unknown": {
+                        "text": "unknown",
+                        "color": "yellow"
+                      },
+                      "pending": {
+                        "text": "pending",
+                        "color": "yellow"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Head"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "included": {
+                        "text": "included",
+                        "color": "green"
+                      },
+                      "\u2713": {
+                        "text": "\u2713",
+                        "color": "green"
+                      },
+                      "checked": {
+                        "text": "checked",
+                        "color": "green"
+                      },
+                      "sent": {
+                        "text": "sent",
+                        "color": "green"
+                      },
+                      "missed": {
+                        "text": "missed",
+                        "color": "red"
+                      },
+                      "Miss": {
+                        "text": "Miss",
+                        "color": "red"
+                      },
+                      "failed": {
+                        "text": "failed",
+                        "color": "red"
+                      },
+                      "unknown": {
+                        "text": "unknown",
+                        "color": "yellow"
+                      },
+                      "pending": {
+                        "text": "pending",
+                        "color": "yellow"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Coverage"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "included": {
+                        "text": "included",
+                        "color": "green"
+                      },
+                      "\u2713": {
+                        "text": "\u2713",
+                        "color": "green"
+                      },
+                      "checked": {
+                        "text": "checked",
+                        "color": "green"
+                      },
+                      "sent": {
+                        "text": "sent",
+                        "color": "green"
+                      },
+                      "missed": {
+                        "text": "missed",
+                        "color": "red"
+                      },
+                      "Miss": {
+                        "text": "Miss",
+                        "color": "red"
+                      },
+                      "failed": {
+                        "text": "failed",
+                        "color": "red"
+                      },
+                      "unknown": {
+                        "text": "unknown",
+                        "color": "yellow"
+                      },
+                      "pending": {
+                        "text": "pending",
+                        "color": "yellow"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "State"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "included": {
+                        "text": "included",
+                        "color": "green"
+                      },
+                      "\u2713": {
+                        "text": "\u2713",
+                        "color": "green"
+                      },
+                      "checked": {
+                        "text": "checked",
+                        "color": "green"
+                      },
+                      "sent": {
+                        "text": "sent",
+                        "color": "green"
+                      },
+                      "missed": {
+                        "text": "missed",
+                        "color": "red"
+                      },
+                      "Miss": {
+                        "text": "Miss",
+                        "color": "red"
+                      },
+                      "failed": {
+                        "text": "failed",
+                        "color": "red"
+                      },
+                      "unknown": {
+                        "text": "unknown",
+                        "color": "yellow"
+                      },
+                      "pending": {
+                        "text": "pending",
+                        "color": "yellow"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "sortBy": []
+      }
+    },
+    {
+      "id": 12,
+      "title": "Discord delivery",
+      "type": "table",
+      "gridPos": {
+        "x": 14,
+        "y": 23,
+        "w": 10,
+        "h": 6
+      },
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "validator-watch"
+      },
+      "description": "Alerts are optional. Pending retries survive restarts. Failed deliveries need operator attention. Duplicate delivery is possible if the process crashes after Discord accepts a message.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "validator-watch"
+          },
+          "rawQueryText": "SELECT created AS time,CASE WHEN instr(id,':')>0 THEN substr(id,1,instr(id,':')-1) ELSE 'demo' END AS Alert,state AS State,attempts AS Attempts,last_status AS \"HTTP status\" FROM outbox ORDER BY created DESC LIMIT 30",
+          "queryText": "SELECT created AS time,CASE WHEN instr(id,':')>0 THEN substr(id,1,instr(id,':')-1) ELSE 'demo' END AS Alert,state AS State,attempts AS Attempts,last_status AS \"HTTP status\" FROM outbox ORDER BY created DESC LIMIT 30",
+          "queryType": "table",
+          "timeColumns": [
+            "time"
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "\u2014",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "minWidth": 55
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "time"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 170
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Outcome"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "included": {
+                        "text": "included",
+                        "color": "green"
+                      },
+                      "\u2713": {
+                        "text": "\u2713",
+                        "color": "green"
+                      },
+                      "checked": {
+                        "text": "checked",
+                        "color": "green"
+                      },
+                      "sent": {
+                        "text": "sent",
+                        "color": "green"
+                      },
+                      "missed": {
+                        "text": "missed",
+                        "color": "red"
+                      },
+                      "Miss": {
+                        "text": "Miss",
+                        "color": "red"
+                      },
+                      "failed": {
+                        "text": "failed",
+                        "color": "red"
+                      },
+                      "unknown": {
+                        "text": "unknown",
+                        "color": "yellow"
+                      },
+                      "pending": {
+                        "text": "pending",
+                        "color": "yellow"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Source"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "included": {
+                        "text": "included",
+                        "color": "green"
+                      },
+                      "\u2713": {
+                        "text": "\u2713",
+                        "color": "green"
+                      },
+                      "checked": {
+                        "text": "checked",
+                        "color": "green"
+                      },
+                      "sent": {
+                        "text": "sent",
+                        "color": "green"
+                      },
+                      "missed": {
+                        "text": "missed",
+                        "color": "red"
+                      },
+                      "Miss": {
+                        "text": "Miss",
+                        "color": "red"
+                      },
+                      "failed": {
+                        "text": "failed",
+                        "color": "red"
+                      },
+                      "unknown": {
+                        "text": "unknown",
+                        "color": "yellow"
+                      },
+                      "pending": {
+                        "text": "pending",
+                        "color": "yellow"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Target"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "included": {
+                        "text": "included",
+                        "color": "green"
+                      },
+                      "\u2713": {
+                        "text": "\u2713",
+                        "color": "green"
+                      },
+                      "checked": {
+                        "text": "checked",
+                        "color": "green"
+                      },
+                      "sent": {
+                        "text": "sent",
+                        "color": "green"
+                      },
+                      "missed": {
+                        "text": "missed",
+                        "color": "red"
+                      },
+                      "Miss": {
+                        "text": "Miss",
+                        "color": "red"
+                      },
+                      "failed": {
+                        "text": "failed",
+                        "color": "red"
+                      },
+                      "unknown": {
+                        "text": "unknown",
+                        "color": "yellow"
+                      },
+                      "pending": {
+                        "text": "pending",
+                        "color": "yellow"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Head"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "included": {
+                        "text": "included",
+                        "color": "green"
+                      },
+                      "\u2713": {
+                        "text": "\u2713",
+                        "color": "green"
+                      },
+                      "checked": {
+                        "text": "checked",
+                        "color": "green"
+                      },
+                      "sent": {
+                        "text": "sent",
+                        "color": "green"
+                      },
+                      "missed": {
+                        "text": "missed",
+                        "color": "red"
+                      },
+                      "Miss": {
+                        "text": "Miss",
+                        "color": "red"
+                      },
+                      "failed": {
+                        "text": "failed",
+                        "color": "red"
+                      },
+                      "unknown": {
+                        "text": "unknown",
+                        "color": "yellow"
+                      },
+                      "pending": {
+                        "text": "pending",
+                        "color": "yellow"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Coverage"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "included": {
+                        "text": "included",
+                        "color": "green"
+                      },
+                      "\u2713": {
+                        "text": "\u2713",
+                        "color": "green"
+                      },
+                      "checked": {
+                        "text": "checked",
+                        "color": "green"
+                      },
+                      "sent": {
+                        "text": "sent",
+                        "color": "green"
+                      },
+                      "missed": {
+                        "text": "missed",
+                        "color": "red"
+                      },
+                      "Miss": {
+                        "text": "Miss",
+                        "color": "red"
+                      },
+                      "failed": {
+                        "text": "failed",
+                        "color": "red"
+                      },
+                      "unknown": {
+                        "text": "unknown",
+                        "color": "yellow"
+                      },
+                      "pending": {
+                        "text": "pending",
+                        "color": "yellow"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "State"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "included": {
+                        "text": "included",
+                        "color": "green"
+                      },
+                      "\u2713": {
+                        "text": "\u2713",
+                        "color": "green"
+                      },
+                      "checked": {
+                        "text": "checked",
+                        "color": "green"
+                      },
+                      "sent": {
+                        "text": "sent",
+                        "color": "green"
+                      },
+                      "missed": {
+                        "text": "missed",
+                        "color": "red"
+                      },
+                      "Miss": {
+                        "text": "Miss",
+                        "color": "red"
+                      },
+                      "failed": {
+                        "text": "failed",
+                        "color": "red"
+                      },
+                      "unknown": {
+                        "text": "unknown",
+                        "color": "yellow"
+                      },
+                      "pending": {
+                        "text": "pending",
+                        "color": "yellow"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "sortBy": []
+      }
+    }
+  ]
+}

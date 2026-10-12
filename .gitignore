@@ -9,8 +9,8 @@
 *.local.yaml
 *.local.json
 *.local.service
-/monitoring/ssh/ssh_config
-/monitoring/samples/
+**/monitoring/ssh/ssh_config
+**/monitoring/samples/
 *.pem
 *.key
 id_rsa*
@@ -20,13 +20,16 @@ known_hosts.*
 authorized_keys
 
 # Runtime state, backups and generated scratch files
-/monitoring/data/
-/monitoring/grafana-data/
-/monitoring/prometheus-data/
+**/monitoring/data/
+**/monitoring/grafana-data/
+**/monitoring/prometheus-data/
 /backups/
 *.log
 *.sqlite
 *.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite-journal
 *.db
 *.bak
 *.tmp
@@ -37,4 +40,13 @@ __pycache__/
 Thumbs.db
 
 # Operator public-key inventories are local deployment data.
-/inventory/
+**/inventory/
+
+# Local application deployments and incident history
+**/private/
+**/data/
+**/backups/
+probe-report*.json
+
+# Discord URLs and other per-application secret files
+**/secrets/

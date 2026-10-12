@@ -1,0 +1,11 @@
+apiVersion: 1
+datasources:
+  - name: Validator Watch
+    uid: validator-watch
+    type: frser-sqlite-datasource
+    access: proxy
+    editable: false
+    jsonData:
+      path: /watch-data/watch.sqlite
+      pathOptions: mode=ro
+      attachLimit: 0
