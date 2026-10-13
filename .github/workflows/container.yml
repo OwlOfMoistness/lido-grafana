@@ -5,7 +5,7 @@ on:
     branches: [main]
   push:
     branches: [main]
-    tags: ['v*']
+    tags: ['v*', 'validator-watch/v*']
   workflow_dispatch:
 
 permissions:
@@ -16,6 +16,33 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  release:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.target.outputs.matrix }}
+      version: ${{ steps.target.outputs.version }}
+    steps:
+      - name: Select applications and validate release tag
+        id: target
+        shell: bash
+        run: |
+          watch='{"app":"validator-watch","context":"apps/validator-watch","dockerfile":"apps/validator-watch/Dockerfile"}'
+          grafana='{"app":"lido-grafana","context":"apps/lido-grafana","dockerfile":"apps/lido-grafana/deployment/Dockerfile"}'
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            if [[ "$GITHUB_REF_NAME" =~ ^validator-watch/v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+              echo "matrix={\"include\":[$watch]}" >> "$GITHUB_OUTPUT"
+              echo "version=${GITHUB_REF_NAME#validator-watch/}" >> "$GITHUB_OUTPUT"
+            elif [[ "$GITHUB_REF_NAME" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+              echo "matrix={\"include\":[$grafana,$watch]}" >> "$GITHUB_OUTPUT"
+              echo "version=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+            else
+              echo 'Use vMAJOR.MINOR.PATCH for both apps, or validator-watch/vMAJOR.MINOR.PATCH for Watch only.'
+              exit 1
+            fi
+          else
+            echo "matrix={\"include\":[$grafana,$watch]}" >> "$GITHUB_OUTPUT"
+          fi
+
   validator-watch:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -50,15 +77,6 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-
-      - name: Validate release tag
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-        shell: bash
-        run: |
-          if [[ ! "$GITHUB_REF_NAME" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
-            echo 'Release tags must use vMAJOR.MINOR.PATCH, for example v1.0.0.'
-            exit 1
-          fi
 
       - name: Run deployment unit tests
         run: python3 -m unittest discover -s deployment/tests -v
@@ -103,18 +121,11 @@ jobs:
 
   publish:
     name: Publish ${{ matrix.app }}
-    needs: [validate, validator-watch]
+    needs: [release, validate, validator-watch]
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - app: lido-grafana
-            context: apps/lido-grafana
-            dockerfile: apps/lido-grafana/deployment/Dockerfile
-          - app: validator-watch
-            context: apps/validator-watch
-            dockerfile: apps/validator-watch/Dockerfile
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+      matrix: ${{ fromJSON(needs.release.outputs.matrix) }}
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -148,8 +159,8 @@ jobs:
           images: ${{ steps.image.outputs.name }}
           tags: |
             type=sha,format=long
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{version}},value=${{ needs.release.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.release.outputs.version }}
           flavor: latest=auto
 
       - name: Build and publish AMD64 and ARM64

@@ -6,11 +6,12 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
+import urllib.error
+from unittest.mock import Mock, patch
 
 APP = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(APP))
-from watch.chain import Unknown, analyze, bitlist, bitvector, flags, inventory
+from watch.chain import Beacon, Unknown, analyze, bitlist, bitvector, flags, inventory
 from watch.store import Store
 from watch.notify import drain, read_webhook, deliver
 from watch.demo import seed
@@ -62,6 +63,56 @@ class FakeBeacon:
 
 class Outcomes(unittest.TestCase):
     def result(self, beacon=None): return analyze(beacon or FakeBeacon(),2,{KEY:'Apple'},(32,12,1000))
+    def test_registry_uses_pinned_finalized_slot_before_block_walk(self):
+        b=FakeBeacon();original=b.get
+        def get(path,body=None):
+            if path == '/eth/v1/beacon/states/64/validators':
+                raise TimeoutError('Historical state replay')
+            return original(path,body)
+        b.get=get
+        self.assertTrue(self.result(b)['attestations'][0]['head'])
+        registry=next(i for i,(p,_) in enumerate(b.calls) if p.endswith('/validators'))
+        blocks=next(i for i,(p,_) in enumerate(b.calls) if '/blinded_blocks/' in p)
+        self.assertLess(registry,blocks)
+        self.assertEqual(b.calls[registry],('/eth/v1/beacon/states/128/validators',{'ids':[KEY]}))
+        self.assertIn(('/eth/v1/beacon/states/64/committees?epoch=2&slot=66',None),b.calls)
+        self.assertIn(('/eth/v1/validator/duties/attester/2',['1']),b.calls)
+    def test_finalized_registry_preserves_historical_activation_and_exit(self):
+        for activation,exit_epoch,active in [(0,3,True),(2,4,True),(0,2,False),(3,10,False)]:
+            with self.subTest(activation=activation,exit=exit_epoch):
+                b=FakeBeacon();original=b.get
+                if not active:b.duties=[]
+                def get(path,body=None):
+                    r=original(path,body)
+                    if path.endswith('/validators'):
+                        r['data'][0]['validator'].update(activation_epoch=str(activation),exit_epoch=str(exit_epoch))
+                        r['data'][0]['status']='withdrawal_done' # current status is not historical activity
+                    if not active and '/duties/proposer/' in path:
+                        for row in r['data']:row.update(pubkey=OTHER,validator_index='999')
+                    return r
+                b.get=get
+                self.assertEqual(len(self.result(b)['attestations']),int(active))
+    def test_finalized_registry_batches_and_missing_keys(self):
+        ownership={KEY:'Apple',**{'0x'+f'{i:096x}':'Apple' for i in range(128)}}
+        b=FakeBeacon();original=b.get
+        def get(path,body=None):
+            r=original(path,body)
+            if path.endswith('/validators') and KEY not in body['ids']:r['data']=[]
+            return r
+        b.get=get
+        result=analyze(b,2,ownership,(32,12,1000))
+        batches=[body['ids'] for path,body in b.calls if path.endswith('/validators')]
+        self.assertEqual([len(batch) for batch in batches],[128,1])
+        self.assertEqual(result['unknown_keys'],128)
+        self.assertEqual(len(result['attestations']),1)
+    def test_optimistic_finalized_registry_fails_closed(self):
+        b=FakeBeacon();original=b.get
+        def get(path,body=None):
+            r=original(path,body)
+            if path.endswith('/validators'):r['execution_optimistic']=True
+            return r
+        b.get=get
+        with self.assertRaisesRegex(Unknown,'optimistic_or_unverified'):self.result(b)
     def test_ssz_and_timing(self):
         self.assertEqual(bitlist('0x06'),(2,2))
         self.assertEqual(bitlist('0x01'),(0,0))
@@ -134,6 +185,32 @@ class Outcomes(unittest.TestCase):
             self.assertEqual(inventory(d),{KEY:'Apple'})
             Path(d,'Banana.csv').write_text(KEY+'\n')
             with self.assertRaises(Unknown): inventory(d)
+
+class RequestDiagnostics(unittest.TestCase):
+    def test_transport_failures_are_identified_without_sensitive_details(self):
+        for error in (TimeoutError('SECRET'),urllib.error.URLError(TimeoutError('SECRET')),
+                      urllib.error.HTTPError('http://private.invalid/SECRET',503,'SECRET',{},None)):
+            with self.subTest(error=type(error).__name__):
+                beacon=Beacon('http://private.invalid/prefix-SECRET',pause=0)
+                beacon.opener=Mock()
+                beacon.opener.open.side_effect=error
+                with self.assertRaises(Unknown) as caught:
+                    beacon.get('/eth/v1/beacon/states/128/validators',{'ids':[KEY]})
+                message=str(caught.exception)
+                self.assertIn('role=collection endpoint=validator_registry method=POST',message)
+                self.assertIn('request=1',message)
+                self.assertIn('elapsed=',message)
+                if isinstance(error,urllib.error.HTTPError):self.assertIn('http=503',message)
+                else:self.assertIn('error=TimeoutError',message)
+                for private in ('SECRET','private.invalid',KEY):self.assertNotIn(private,message)
+    def test_read_timeout_and_primary_health_role(self):
+        beacon=Beacon('http://private.invalid',pause=0,role='primary_health')
+        reply=Mock();reply.read.side_effect=TimeoutError('SECRET')
+        context=Mock();context.__enter__=Mock(return_value=reply);context.__exit__=Mock(return_value=False)
+        beacon.opener=Mock();beacon.opener.open.return_value=context
+        with self.assertRaisesRegex(Unknown,'role=primary_health endpoint=syncing method=GET error=TimeoutError'):
+            beacon.get('/eth/v1/node/syncing')
+
 
 class Persistence(unittest.TestCase):
     def setUp(self):
@@ -225,6 +302,18 @@ class Service(unittest.TestCase):
 
 
 class Dashboard(unittest.TestCase):
+    def test_partial_proposal_clients_remain_selectable_without_summaries(self):
+        spec=importlib.util.spec_from_file_location('dash',APP/'grafana/build_dashboards.py')
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as d:
+            s=Store(Path(d,'watch.sqlite'))
+            s.save_proposals(analyze(FakeBeacon(),2,{KEY:'Apple'},(32,12,1000)))
+            queries=module.variables(detail=True)
+            self.assertEqual(s.db.execute(queries[0]['query']).fetchone()[0],'Apple')
+            query=queries[1]['query'].replace('${client:sqlstring}',"'Apple'")
+            self.assertEqual(s.db.execute(query).fetchone()[1],KEY)
+            s.db.close()
+
     def test_every_query_executes_against_mock_database(self):
         spec=importlib.util.spec_from_file_location('dash',APP/'grafana/build_dashboards.py')
         module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)

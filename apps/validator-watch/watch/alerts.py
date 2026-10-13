@@ -48,7 +48,7 @@ def attestation_alerts(store, result, policy, enabled, now=None):
     opened, recovered = [], []
     for client, (expected, affected) in sorted(counts.items()):
         state = read_state(store, 'attestation:' + client)
-        if state.get('last_epoch') == epoch:
+        if state.get('last_epoch',-1) >= epoch:
             continue
         # A gap, zero-duty epoch or policy change cannot extend a streak or
         # establish recovery. Keep existing incidents open until checked again.

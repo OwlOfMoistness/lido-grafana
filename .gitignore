@@ -41,6 +41,7 @@ Thumbs.db
 
 # Operator public-key inventories are local deployment data.
 **/inventory/
+/validators/
 
 # Local application deployments and incident history
 **/private/

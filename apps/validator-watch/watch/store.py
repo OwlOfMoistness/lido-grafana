@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS events(id TEXT PRIMARY KEY,time INTEGER,epoch INTEGER
 CREATE INDEX IF NOT EXISTS events_time ON events(time);
 CREATE INDEX IF NOT EXISTS summary_client ON summary(client,bucket);
 CREATE TABLE IF NOT EXISTS outbox(id TEXT PRIMARY KEY,content TEXT,state TEXT NOT NULL DEFAULT 'pending',attempts INTEGER NOT NULL DEFAULT 0,next_try REAL NOT NULL DEFAULT 0,last_status TEXT NOT NULL DEFAULT '',created REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS backlog(epoch INTEGER PRIMARY KEY,ownership TEXT,attempts INTEGER NOT NULL DEFAULT 0,next_try REAL NOT NULL DEFAULT 0,proposals_checked INTEGER NOT NULL DEFAULT 0);
 '''
 
 
@@ -24,6 +25,11 @@ class Store:
         self.db.execute('PRAGMA journal_mode=WAL')
         self.db.execute('PRAGMA busy_timeout=10000')
         self.db.executescript(SCHEMA)
+        # Upgrade old databases without discarding existing coverage gaps. Old
+        # releases may have deleted ownership; those rows require confirmation.
+        self.db.execute("""INSERT OR IGNORE INTO backlog(epoch,ownership)
+            SELECT epoch,(SELECT value FROM meta WHERE key='ownership:' || epoch)
+            FROM epochs WHERE status='unknown'""")
         self.db.commit()
 
     def get(self, key, default=None):
@@ -43,15 +49,65 @@ class Store:
     def gap(self, epoch, timestamp, reason):
         with self.db:
             self.db.execute("INSERT OR IGNORE INTO epochs(epoch,time,status,reason) VALUES(?,?,'unknown',?)",(epoch,timestamp,reason))
-            self.set('next_epoch',epoch+1)
+            self.set('next_epoch',max(epoch+1,int(self.get('next_epoch','0'))))
 
-    def save(self, result, discord_enabled=False, policy=None):
+    def queue(self, epoch, timestamp, ownership=None):
+        """Queue incomplete evidence, never replace a captured ownership list."""
+        with self.db:
+            row = self.db.execute('SELECT status FROM epochs WHERE epoch=?',(epoch,)).fetchone()
+            if row and row['status']=='checked':
+                return
+            saved = self.get(f'ownership:{epoch}')
+            saved = saved if saved is not None else (json.dumps(ownership) if ownership is not None else None)
+            self.db.execute("INSERT OR IGNORE INTO epochs(epoch,time,status,reason) VALUES(?,?,'unknown',?)",
+                            (epoch,timestamp,'queued' if saved else 'ownership_not_observed'))
+            self.db.execute("""INSERT OR IGNORE INTO backlog(epoch,ownership)
+                SELECT ?,? WHERE EXISTS(SELECT 1 FROM epochs WHERE epoch=? AND status='unknown')""",
+                (epoch,saved,epoch))
+            if saved:
+                self.db.execute('UPDATE backlog SET ownership=? WHERE epoch=? AND ownership IS NULL',(saved,epoch))
+                self.db.execute("UPDATE epochs SET reason='queued' WHERE epoch=? AND reason IN ('catchup_limit','ownership_not_observed')",(epoch,))
+
+    def defer(self, epoch, reason, delay, now=None):
+        now = time.time() if now is None else now
+        with self.db:
+            self.db.execute('UPDATE backlog SET attempts=attempts+1,next_try=? WHERE epoch=?',(now+delay,epoch))
+            self.db.execute("UPDATE epochs SET reason=? WHERE epoch=? AND status='unknown'",(reason,epoch))
+
+    def save_proposals(self, result, discord_enabled=False, historical=False):
+        """Commit independently of committee/attestation endpoint availability."""
+        with self.db:
+            self._proposals(result,discord_enabled,historical)
+            self.db.execute('UPDATE backlog SET proposals_checked=1 WHERE epoch=?',(result['epoch'],))
+
+    def _proposals(self, result, discord_enabled, historical):
+        e = result['epoch']
+        for p in result['proposals']:
+            ident = f"proposal:{p['slot']}:{p['pubkey']}"
+            when = result['genesis']+p['slot']*result['seconds']
+            existing = self.db.execute('SELECT * FROM events WHERE id=?',(ident,)).fetchone()
+            if existing:
+                if (existing['epoch'],existing['status'],existing['block_root'],existing['client']) != (e,p['status'],p['block_root'],p['client']):
+                    raise ValueError('Conflicting proposal evidence')
+                continue
+            self.event(ident,when,e,p['slot'],p['client'],p['pubkey'],'proposal',p['status'],None,None,None,None,None,p['block_root'])
+            if p['status']=='missed' and discord_enabled:
+                title = 'Confirmed missed proposal (historical catch-up)' if historical else 'Confirmed missed proposal'
+                content = (f"{title}\nClient: {p['client']}\nValidator: {p['pubkey']}\n"
+                           f"Slot: {p['slot']} · scheduled <t:{when}:F>\n"
+                           f"Finalized canonical evidence; cause unknown.\nDetected <t:{int(time.time())}:F>\nIncident: {ident}")
+                self.db.execute('INSERT OR IGNORE INTO outbox(id,content,created) VALUES(?,?,?)',(ident,content,time.time()))
+
+    def save(self, result, discord_enabled=False, policy=None, historical=False):
         e, timestamp = result['epoch'], result['time']
         # Epoch insertion, counter deltas, exceptions, cursor and alert are one transaction.
         with self.db:
-            if self.db.execute('SELECT 1 FROM epochs WHERE epoch=?',(e,)).fetchone():
+            if self.db.execute("SELECT 1 FROM epochs WHERE epoch=? AND status='checked'",(e,)).fetchone():
+                self.db.execute('DELETE FROM backlog WHERE epoch=?',(e,))
                 return False
-            self.db.execute("INSERT INTO epochs VALUES(?,?,'checked','',?,?)",(e,timestamp,result['anchor'],result['unknown_keys']))
+            self.db.execute("""INSERT INTO epochs VALUES(?,?,'checked','',?,?)
+                ON CONFLICT(epoch) DO UPDATE SET status='checked',reason='',anchor=excluded.anchor,unknown_keys=excluded.unknown_keys""",
+                (e,timestamp,result['anchor'],result['unknown_keys']))
             bucket = timestamp//3600*3600
             by_key = {a['pubkey']:a for a in result['attestations']}
             for key, client in result['ownership'].items():
@@ -68,17 +124,13 @@ class Store:
                 if a and any(missing):
                     self.event(f'attestation:{e}:{key}', result['genesis']+a['slot']*result['seconds'],e,a['slot'],client,key,
                                'attestation','issue',*(int(a[c]) for c in ('source','target','head')),sum(missing),a['delay'],'')
-            for p in result['proposals']:
-                ident = f"proposal:{p['slot']}:{p['pubkey']}"
-                when = result['genesis']+p['slot']*result['seconds']
-                self.event(ident,when,e,p['slot'],p['client'],p['pubkey'],'proposal',p['status'],None,None,None,None,None,p['block_root'])
-                if p['status']=='missed' and discord_enabled:
-                    content = (f"Confirmed missed proposal\nClient: {p['client']}\nValidator: {p['pubkey']}\n"
-                               f"Slot: {p['slot']} · scheduled <t:{when}:F>\n"
-                               f"Finalized canonical evidence; cause unknown.\nDetected <t:{int(time.time())}:F>\nIncident: {ident}")
-                    self.db.execute('INSERT OR IGNORE INTO outbox(id,content,created) VALUES(?,?,?)',(ident,content,time.time()))
-            attestation_alerts(self, result, policy or Policy(), discord_enabled)
-            self.set('next_epoch',e+1); self.set('last_checked',timestamp)
+            self._proposals(result,discord_enabled,historical)
+            if not historical:
+                attestation_alerts(self, result, policy or Policy(), discord_enabled)
+            self.set('next_epoch',max(e+1,int(self.get('next_epoch','0'))))
+            self.set('last_checked',max(timestamp,int(self.get('last_checked','0'))))
+            self.db.execute('DELETE FROM backlog WHERE epoch=?',(e,))
+            self.db.execute('DELETE FROM meta WHERE key=?',(f'ownership:{e}',))
         return True
 
     def event(self, *args):
@@ -87,9 +139,11 @@ class Store:
     def prune(self, days=30, now=None):
         cutoff = int((time.time() if now is None else now)-days*86400)
         with self.db:
-            self.db.execute('DELETE FROM events WHERE time<?',(cutoff,))
-            self.db.execute('DELETE FROM epochs WHERE time<?',(cutoff,))
+            # Pending jobs/evidence are never aged out before recovery. Completed
+            # history uses the normal retention; notification dedup remains durable.
+            self.db.execute('DELETE FROM events WHERE time<? AND epoch NOT IN (SELECT epoch FROM backlog)',(cutoff,))
+            self.db.execute("DELETE FROM epochs WHERE time<? AND status='checked'",(cutoff,))
             # Whole hourly buckets: at most one additional partial hour is retained.
             self.db.execute('DELETE FROM summary WHERE bucket<?',(cutoff//3600*3600,))
-            self.db.execute('DELETE FROM outbox WHERE created<?',(cutoff,))
+            self.db.execute("DELETE FROM outbox WHERE created<? AND state!='pending' AND id NOT LIKE 'proposal:%'",(cutoff,))
         self.db.execute('PRAGMA wal_checkpoint(PASSIVE)')

@@ -1,6 +1,6 @@
 name: validator-watch
 x-app: &app
-  image: ${WATCH_IMAGE:-ghcr.io/owlofmoistness/validator-watch:0.6.0}
+  image: ${WATCH_IMAGE:-ghcr.io/owlofmoistness/validator-watch:0.7.0}
   read_only: true
   cap_drop: [ALL]
   security_opt: [no-new-privileges:true]
@@ -22,6 +22,7 @@ services:
       INVENTORY_DIR: /inventory
       DATABASE_PATH: /data/watch.sqlite
       RETENTION_DAYS: ${RETENTION_DAYS:-30}
+      BACKFILL_INTERVAL_SECONDS: ${BACKFILL_INTERVAL_SECONDS:-600}
       ATTESTATION_ISSUE_PER_THOUSAND: ${ATTESTATION_ISSUE_PER_THOUSAND:-10}
       ATTESTATION_ISSUE_EPOCHS: ${ATTESTATION_ISSUE_EPOCHS:-2}
       COLLECTOR_ALERT_AFTER_SECONDS: ${COLLECTOR_ALERT_AFTER_SECONDS:-300}

@@ -129,4 +129,13 @@ class Alerts(unittest.TestCase):
         self.assertEqual(self.messages(),[])
         self.collect(2);self.assertEqual(len(self.messages()),1)
 
+    def test_out_of_order_recent_epoch_cannot_rewind_alert_state(self):
+        self.collect(3);self.collect(4)
+        state=self.store.get('alert:attestation:Apple')
+        self.collect(2,0)
+        self.assertEqual(self.store.get('alert:attestation:Apple'),state)
+        self.assertEqual(len(self.messages()),1)
+        self.collect(5,0);self.collect(6,0)
+        self.assertEqual(len(self.messages()),2)
+
 if __name__=='__main__':unittest.main()

@@ -26,10 +26,10 @@ def panel(ident,title,kind,x,y,w,h,sql,description='',unit='none'):
 
 
 def variables(detail=False):
-    v=[{'name':'client','label':'Client','type':'query','datasource':DS,'query':'SELECT DISTINCT client FROM summary ORDER BY client',
+    v=[{'name':'client','label':'Client','type':'query','datasource':DS,'query':'SELECT client FROM summary UNION SELECT client FROM events ORDER BY client',
         'refresh':1,'multi':True,'includeAll':True,'current':{'text':'All','value':'$__all'},'options':[]}]
     if detail:v.append({'name':'validator','label':'Validator','type':'query','datasource':DS,
-       'query':f"SELECT substr(pubkey,1,12)||'…'||substr(pubkey,-6) AS __text, pubkey AS __value FROM summary WHERE {CLIENT} GROUP BY pubkey ORDER BY pubkey",
+       'query':f"SELECT substr(pubkey,1,12)||'…'||substr(pubkey,-6) AS __text, pubkey AS __value FROM (SELECT client,pubkey FROM summary UNION SELECT client,pubkey FROM events) WHERE {CLIENT} GROUP BY pubkey ORDER BY pubkey",
        'refresh':1,'multi':True,'includeAll':True,'current':{'text':'All','value':'$__all'},'options':[]})
     return v
 
@@ -69,10 +69,19 @@ def build(detail=False):
        FROM events WHERE {events} AND kind='attestation' ORDER BY time DESC LIMIT 200''',
        'Participation flags, not monetary rewards. No observed inclusion is different from proven failure to submit. Most recent 200 exceptions in the selected range.'))
     p.append(panel(11,'Collection coverage · unknown is not a validator failure','table',0,23,14,6,
-       f'SELECT time,epoch AS Epoch,status AS Coverage,reason AS Reason,unknown_keys AS "Unregistered keys" FROM epochs WHERE {EVENT_RANGE} ORDER BY epoch DESC LIMIT 100'))
+       f"""SELECT time,epoch AS Epoch,status AS Coverage,reason AS Reason,unknown_keys AS "Unregistered keys",CASE WHEN status='checked' OR coalesce((SELECT proposals_checked FROM backlog WHERE backlog.epoch=epochs.epoch),0)=1 THEN 'checked' ELSE 'unknown' END AS Proposals FROM epochs WHERE {EVENT_RANGE} ORDER BY epoch DESC LIMIT 100"""))
     p.append(panel(12,'Discord delivery','table',14,23,10,6,
        "SELECT created AS time,CASE WHEN instr(id,':')>0 THEN substr(id,1,instr(id,':')-1) ELSE 'demo' END AS Alert,state AS State,attempts AS Attempts,last_status AS \"HTTP status\" FROM outbox ORDER BY created DESC LIMIT 30",
        'Alerts are optional. Pending retries survive restarts. Failed deliveries need operator attention. Duplicate delivery is possible if the process crashes after Discord accepts a message.'))
+    p.append(panel(13,'Recovery queue · recent epochs take priority','table',0,29,24,6,
+       """SELECT e.time,b.epoch AS Epoch,
+       CASE WHEN b.ownership IS NULL THEN 'Confirmation needed' ELSE 'Captured' END AS Inventory,
+       CASE WHEN b.proposals_checked=1 THEN 'checked' ELSE 'unknown' END AS Proposals,
+       b.attempts AS Attempts,CASE WHEN b.next_try>0 THEN b.next_try ELSE NULL END AS "Retry after",
+       e.reason AS Reason,(SELECT count(*) FROM backlog) AS "Total queued"
+       FROM backlog b JOIN epochs e ON e.epoch=b.epoch ORDER BY b.epoch LIMIT 100""",
+       'Oldest 100 unresolved epochs, independent of the selected time range. Retry times are earliest eligibility, not appointments; live work and the historical cooldown take priority. Inventory confirmation is required when no historical observation exists. Proposal outcomes may be available while attestations remain unknown.'))
+    p[-1]['targets'][0]['timeColumns']=['time','Retry after']
     for t in (8,9,10,11,12):
         next(a for a in p if a['id']==t)['options']['sortBy']=[]
     def override(p, name, properties):
@@ -88,7 +97,7 @@ def build(detail=False):
     p[5]['fieldConfig']['defaults']['decimals']=1
     for table in (p[7],p[8],p[9]):
         override(table,'Client',[{'id':'unit','value':'string'}])
-    for table in (p[7],p[9],p[10],p[11]):
+    for table in (p[7],p[9],p[10],p[11],p[12]):
         override(table,'time',[{'id':'custom.width','value':170}])
     override(p[9],'Validator',[{'id':'custom.width','value':190}])
     override(p[9],'Delay slots',[{'id':'noValue','value':'No inclusion'}])
@@ -101,8 +110,10 @@ def build(detail=False):
     override(p[9],'Pubkey',[{'id':'unit','value':'string'},{'id':'custom.hidden','value':True}])
     override(p[9],'Validator',[{'id':'links','value':[{'title':'Inspect validator','url':'/d/validator-watch-detail?var-client=${__data.fields.Client}&var-validator=${__data.fields.Pubkey:raw}&from=$__from&to=$__to'}]}])
     override(p[8],'Client',[{'id':'links','value':[{'title':'Inspect client','url':'/d/validator-watch-detail?var-client=${__value.raw}&from=$__from&to=$__to'}]}])
-    for table in (p[7],p[9],p[10],p[11]):
-        for field in ('Outcome','Source','Target','Head','Coverage','State'):
+    for table in (p[7],p[9],p[10],p[11],p[12]):
+        for field in ('Outcome','Source','Target','Head','Coverage','State','Proposals'):
+            if table is p[12] and field != 'Proposals':continue
+            if field == 'Proposals' and table not in (p[10],p[12]):continue
             override(table,field,[{'id':'mappings','value':[{'type':'value','options':{
                 **{k:{'text':k,'color':'green'} for k in ('included','✓','checked','sent')},
                 **{k:{'text':k,'color':'red'} for k in ('missed','Miss','failed')},

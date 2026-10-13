@@ -23,6 +23,10 @@ pass validation. For example, pushing `v0.6.0` would publish:
 - `ghcr.io/owlofmoistness/lido-grafana:0.6.0`
 - `ghcr.io/owlofmoistness/validator-watch:0.6.0`
 
+To release only Validator Watch, use `validator-watch/vMAJOR.MINOR.PATCH`.
+For example, `validator-watch/v0.7.0` publishes `validator-watch:0.7.0` without
+publishing a new Lido Grafana image.
+
 Both images support AMD64 and ARM64 and also receive minor-version, `latest`,
 and commit-SHA tags. Ordinary branch pushes and manual workflow runs validate
 only. Publishing uses the workflow's `GITHUB_TOKEN`; no additional registry

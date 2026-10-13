@@ -1,9 +1,11 @@
 """Bounded finalized-chain analysis. Supports Deneb, Electra and Fulu only."""
 import csv
+from http.client import HTTPException
 import json
 import math
 import re
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -15,6 +17,12 @@ FORKS = {'deneb', 'electra', 'fulu'}
 
 class Unknown(Exception):
     """Unavailable or unsupported evidence is never a validator failure."""
+
+
+class BeaconRequestError(Unknown):
+    def __init__(self, message, status=None):
+        super().__init__(message)
+        self.status = status
 
 
 def require(condition, reason='incomplete_evidence'):
@@ -58,12 +66,14 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 
 
 class Beacon:
-    def __init__(self, url, pause=1, timeout=10):
+    def __init__(self, url, pause=1, timeout=10, role='collection'):
         from urllib.parse import urlsplit
         p = urlsplit(url)
         require(p.scheme in ('http', 'https') and p.hostname and not p.username and not p.password
                 and not p.query and not p.fragment, 'invalid_beacon_url')
         self.url, self.pause, self.timeout = url.rstrip('/'), pause, timeout
+        require(role in ('collection', 'primary_health'), 'invalid_beacon_role')
+        self.role = role
         self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
         self.reset()
 
@@ -77,6 +87,7 @@ class Beacon:
         req = urllib.request.Request(self.url + path,
             data=None if body is None else json.dumps(body).encode(),
             headers={'Accept': 'application/json', 'Content-Type': 'application/json'})
+        started = time.monotonic()
         try:
             with self.opener.open(req, timeout=self.timeout) as response:
                 payload = response.read(4 * 1024 * 1024 + 1)
@@ -85,8 +96,38 @@ class Beacon:
             data = json.loads(payload)
             require(isinstance(data, dict) and 'data' in data)
             return data
+        except (OSError, HTTPException) as exc:
+            # Only fixed endpoint labels and numeric diagnostics; never include
+            # URLs, request bodies, pubkeys or exception messages in alerts/logs.
+            endpoint = endpoint_name(path)
+            reason = type(exc).__name__
+            if isinstance(exc, urllib.error.URLError) and isinstance(exc.reason, TimeoutError):
+                reason = 'TimeoutError'
+            status = f' http={exc.code}' if isinstance(exc, urllib.error.HTTPError) else ''
+            raise BeaconRequestError(f'beacon_request_failed role={self.role} endpoint={endpoint} '
+                          f'method={req.get_method()} error={reason}{status} '
+                          f'elapsed={time.monotonic()-started:.2f}s request={self.calls}',
+                                     status=exc.code if isinstance(exc, urllib.error.HTTPError) else None) from None
         finally:
             self.last = time.monotonic()
+
+
+def endpoint_name(path):
+    for pattern, name in (
+        (r'/eth/v1/beacon/states/[^/]+/validators', 'validator_registry'),
+        (r'/eth/v1/beacon/states/[^/]+/committees(?:\?.*)?', 'attestation_committees'),
+        (r'/eth/v1/beacon/states/[^/]+/sync_committees', 'sync_committees'),
+        (r'/eth/v1/beacon/blinded_blocks/[^/]+', 'blinded_block'),
+        (r'/eth/v1/beacon/headers/[^/]+', 'header'),
+        (r'/eth/v1/validator/duties/attester/[^/]+', 'attester_duties'),
+        (r'/eth/v1/validator/duties/proposer/[^/]+', 'proposer_duties'),
+        (r'/eth/v1/node/syncing', 'syncing'),
+        (r'/eth/v1/beacon/genesis', 'genesis'),
+        (r'/eth/v1/config/spec', 'spec'),
+    ):
+        if re.fullmatch(pattern, path):
+            return name
+    return 'other'
 
 
 def verified(response):
@@ -131,21 +172,64 @@ def flags(delay, target_matches, head_matches, slots=32):
     return (delay <= math.isqrt(slots), bool(target_matches), bool(target_matches and head_matches and delay == 1))
 
 
-def analyze(beacon, epoch, ownership, timing):
-    """Read a complete canonical window; return nothing on partial/ambiguous evidence."""
+def window_anchor(beacon, end, final_slot, final_root, slots):
+    """Bound historical work to a nearby canonical block below finalized height.
+
+    A 404 here only advances the anchor search. Proposal misses are proven later
+    by parent links, never by a missing HTTP response.
+    """
+    require(final_slot >= end, 'inclusion_window_not_finalized')
+    if final_slot - end <= slots:
+        return final_slot, final_root
+    for candidate in range(end, min(end + slots, final_slot + 1)):
+        try:
+            anchor_slot, anchor_root = header(beacon.get(f'/eth/v1/beacon/headers/{candidate}'))
+        except BeaconRequestError as exc:
+            if exc.status == 404:
+                continue
+            raise
+        require(anchor_slot == candidate, 'anchor_slot_mismatch')
+        return anchor_slot, anchor_root
+    raise Unknown('historical_anchor_unavailable')
+
+
+def analyze(beacon, epoch, ownership, timing, on_proposals=None):
+    """Return full outcomes only with complete evidence; report proven proposals early."""
     slots, seconds, genesis = timing
     start, end = epoch * slots, (epoch + 2) * slots
     final_slot, final_root = readiness(beacon)
-    require(final_slot >= end and final_slot - end <= 4 * slots, 'outside_recent_finality_window')
+    require(final_slot >= end, 'inclusion_window_not_finalized')
+    # Resolve identities/lifecycle epochs from the pinned finalized snapshot
+    # before the block walk displaces recent state caches. These fields allow
+    # activity at the checked epoch to be determined without its old registry.
+    # Do not filter by present-day status: recently exited validators may have
+    # duties in the checked epoch. Balances are not used here.
+    records = {}
+    keys = list(ownership)
+    registry_error = None
+    try:
+        for offset in range(0, len(keys), 128):
+            batch = keys[offset:offset + 128]
+            response = beacon.get(f'/eth/v1/beacon/states/{final_slot}/validators', {'ids': batch})
+            for row in verified(response):
+                key = row['validator']['pubkey'].lower()
+                require(key in batch and key not in records)
+                records[key] = row
+    except Unknown as exc:
+        # Proposal duties identify their pubkey/index without the registry.
+        # Preserve those outcomes even if attestation prerequisites time out.
+        registry_error = exc
+    anchor_slot, anchor_root = window_anchor(beacon, end, final_slot, final_root, slots)
     # Walk actual parent roots, proving skipped slots instead of treating 404 as a miss.
     blocks = {}
-    r, previous = final_root, final_slot + 1
+    r, previous = anchor_root, anchor_slot + 1
     while True:
         response = beacon.get('/eth/v1/beacon/blinded_blocks/' + r)
         require(response.get('version', '').lower() in FORKS, 'unsupported_fork')
         message = verified(response)['message']
         slot = number(message['slot'])
-        require(slot < previous and len(blocks) < 7 * slots, 'broken_parent_chain')
+        require(slot < previous and len(blocks) < 4 * slots, 'broken_parent_chain')
+        require(bool(blocks) or slot == anchor_slot, 'anchor_slot_mismatch')
         previous = slot
         # Discard execution payload headers, signatures and other irrelevant fields.
         body = message['body']
@@ -160,16 +244,30 @@ def analyze(beacon, epoch, ownership, timing):
         require(bool(available), 'missing_root_history')
         return blocks[max(available)]['root']
 
-    # Historical state is pinned to the checked epoch; no whole registry downloads.
-    records = {}
-    keys = list(ownership)
-    for offset in range(0, len(keys), 128):
-        batch = keys[offset:offset + 128]
-        response = beacon.get(f'/eth/v1/beacon/states/{start}/validators', {'ids': batch})
-        for row in verified(response):
-            key = row['validator']['pubkey'].lower()
-            require(key in batch and key not in records)
-            records[key] = row
+    rows = verified(beacon.get(f'/eth/v1/validator/duties/proposer/{epoch}'))
+    proposers = {}
+    for row in rows:
+        slot = number(row['slot']); idx = number(row['validator_index'])
+        require(start <= slot < start+slots and slot not in proposers)
+        key = row['pubkey'].lower()
+        require(KEY.fullmatch(key), 'invalid_proposer_key')
+        proposers[slot] = (idx, key)
+    require(set(proposers) == set(range(start, start+slots)), 'incomplete_proposer_duties')
+    proposals = []
+    for slot, (idx, key) in proposers.items():
+        if key in ownership:
+            if slot in blocks:
+                require(blocks[slot]['proposer'] == idx, 'proposer_mismatch')
+            proposals.append({'slot': slot, 'pubkey': key, 'client': ownership[key],
+                'status': 'included' if slot in blocks else 'missed',
+                'block_root': blocks[slot]['root'] if slot in blocks else ''})
+    require(header(beacon.get(f'/eth/v1/beacon/headers/{anchor_slot}')) == (anchor_slot, anchor_root), 'anchor_changed')
+    if on_proposals is not None:
+        on_proposals({'epoch': epoch, 'time': genesis+start*seconds, 'proposals': proposals,
+                      'anchor': anchor_root, 'genesis': genesis, 'seconds': seconds})
+    if registry_error is not None:
+        raise registry_error
+
     active = {}
     for key, row in records.items():
         validator = row['validator']
@@ -177,7 +275,7 @@ def analyze(beacon, epoch, ownership, timing):
             idx = number(row['index'])
             require(idx not in active)
             active[idx] = key
-    # Missing registry keys are displayed as inventory coverage, not invented duties.
+    # Keys missing at the finalized snapshot are coverage gaps, not invented duties.
     duties = {}
     indices = list(active)
     for offset in range(0, len(indices), 128):
@@ -236,22 +334,6 @@ def analyze(beacon, epoch, ownership, timing):
                         earned[idx] = [old or new for old, new in zip(earned[idx], credit)]
                         delays[idx] = min(delays.get(idx, 2**64), inclusion_slot-slot)
                 offset += lengths[ci]
-    rows = verified(beacon.get(f'/eth/v1/validator/duties/proposer/{epoch}'))
-    proposers = {}
-    for row in rows:
-        slot = number(row['slot']); idx = number(row['validator_index'])
-        require(start <= slot < start+slots and slot not in proposers)
-        proposers[slot] = (idx, row['pubkey'].lower())
-    require(set(proposers) == set(range(start, start+slots)), 'incomplete_proposer_duties')
-    proposals = []
-    for slot, (idx, key) in proposers.items():
-        if key in ownership:
-            require(key in records and number(records[key]['index']) == idx, 'proposer_registry_mismatch')
-            if slot in blocks:
-                require(blocks[slot]['proposer'] == idx, 'proposer_mismatch')
-            proposals.append({'slot': slot, 'pubkey': key, 'client': ownership[key],
-                'status': 'included' if slot in blocks else 'missed',
-                'block_root': blocks[slot]['root'] if slot in blocks else ''})
     # Sync bits in block S describe committee signatures for S-1, using the
     # committee at S. Missing inclusion blocks are unknown, not blamed on a VC.
     sync = {key: [0, 0, 0] for key in ownership}  # expected / missed / unknown positions
@@ -266,11 +348,11 @@ def analyze(beacon, epoch, ownership, timing):
                 values = sync[owned_indices[idx]]; values[0] += 1
                 if bits is None: values[2] += 1
                 elif not bits & (1 << pos): values[1] += 1
-    require(header(beacon.get(f'/eth/v1/beacon/headers/{final_slot}')) == (final_slot, final_root), 'anchor_changed')
+    require(header(beacon.get(f'/eth/v1/beacon/headers/{anchor_slot}')) == (anchor_slot, anchor_root), 'anchor_changed')
     attestations = [{'pubkey': key, 'client': ownership[key], 'slot': number(duties[idx]['slot']),
                     'source': earned[idx][0], 'target': earned[idx][1], 'head': earned[idx][2],
                     'delay': delays.get(idx)} for idx, key in active.items()]
-    return {'epoch': epoch, 'time': genesis+start*seconds, 'anchor': final_root,
+    return {'epoch': epoch, 'time': genesis+start*seconds, 'anchor': anchor_root,
             'attestations': attestations, 'proposals': proposals, 'sync': sync,
             'ownership': ownership, 'unknown_keys': len(keys)-len(records),
             'slots': slots, 'seconds': seconds, 'genesis': genesis}

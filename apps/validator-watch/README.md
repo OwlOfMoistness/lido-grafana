@@ -53,7 +53,8 @@ mkdir -p inventory
 
 Edit `.env`:
 
-- `WATCH_IMAGE`: a published version (both apps publish on repository version tags).
+- `WATCH_IMAGE`: a published version. `validator-watch/v…` tags release this app alone;
+  repository-wide `v…` tags release both apps.
 - `BEACON_URL`: the designated fallback REST endpoint, for example
   `http://127.0.0.1:5552` through an existing tunnel.
 - `PRIMARY_HEALTH_URL`: optional readiness guard. Leave empty to disable it.
@@ -85,11 +86,15 @@ docker compose logs --tail=30 collector
 
 The collector starts with the current epoch, captures ownership, and waits until
 its full inclusion window is finalized. Expect an initial delay of several epochs.
-There is no historical backfill. A stopped collector can catch up at most two recent
-epochs; older intervals are marked unknown. Ownership is frozen at the first
+Missed epochs enter a durable recovery queue. Recent finalized epochs take priority;
+older epochs are retried one at a time with a ten-minute rest between historical
+attempts by default. Ownership is frozen at the first
 inventory observation during each epoch. Move keys between files at an epoch
 boundary where possible; within-epoch moves cannot be represented by this format.
-Previously stored events retain their original client attribution.
+Previously stored events retain their original client attribution. Once chain timing
+has been established, inventory observations continue during beacon outages.
+Epochs when the collector itself was stopped can lack ownership observations;
+they require an explicit historical inventory confirmation before analysis.
 
 Grafana binds to `127.0.0.1:3306` by default. Access it through your usual private
 connection. It reads SQLite locally; dashboard refreshes issue no beacon requests.
@@ -103,6 +108,56 @@ Summary buckets are hourly: selections include the whole first partial hour,
 while individual events use exact time filters. Retention can retain up to one
 additional hour of summaries. SQLite reuses freed pages; its file need not shrink
 immediately after pruning. Retention bounds time, not a fixed disk-byte budget.
+
+## Slow catch-up and existing gaps
+
+`BACKFILL_INTERVAL_SECONDS=600` sets the minimum rest **after** each historical
+attempt (range 60–86400). Each polling cycle attempts at most one epoch, with
+recent finalized work taking priority. There is no concurrent beacon scanning.
+Failed historical epochs receive exponential retry delays up to six hours; other
+eligible epochs can proceed. Restarting the container preserves the queue and
+cooldowns. An already running historical request is not interrupted when a new
+epoch becomes eligible, so it can delay recent work by up to one bounded attempt.
+
+The coverage table stays **unknown** until a complete epoch has been checked.
+Its separate proposal coverage can become **checked** sooner: proposal outcomes
+and missed-block notifications are saved before attestation committee analysis.
+A committee timeout therefore does not erase a proven missed proposal. Historical
+missed-block messages are labelled as catch-up and include the original slot time.
+Retries do not enqueue the same proposal alert again. Recovered attestation history
+updates tables and charts, but does not replay old threshold/recovery notifications
+or rewind the current alert streak.
+
+The **Recovery queue** table shows pending epochs, inventory availability,
+proposal coverage, attempts and retry times, including entries outside the dashboard
+selection. Collection health describes recent work; a healthy collector can still
+have a historical backlog. Historical blocks/duties/committees must remain available
+on the designated beacon. Pruned or unsupported history stays unknown and queued;
+recovery is not guaranteed solely by retaining a job.
+
+Older releases wrote `catchup_limit` gaps and discarded their ownership lists.
+The upgrade retains these gaps, but cannot infer where keys belonged in the past.
+If your mounted CSVs correctly describe a historical interval, explicitly queue it:
+
+```sh
+docker compose exec collector python -m watch.main backfill \
+  --from-epoch 123456 --to-epoch 123470 --confirm-inventory
+```
+
+Replace the sample epoch numbers with the actual gap. The upgraded collector must
+have started once to record chain timing. This command uses the CSVs mounted at
+`/inventory`, skips completed epochs and preserves any previously captured ownership.
+Use separate ranges with the appropriate inventory if keys moved between clients.
+Do not confirm today's CSVs for a period when their ownership was different.
+The command queues work; it does not issue an immediate burst of beacon requests.
+
+Unresolved queue entries and their proposal evidence are exempt from normal
+retention. Completed history still follows `RETENTION_DAYS`; recovering an epoch
+older than that period will not extend its history retention. Increase retention
+before recovering older history if you want to inspect it afterwards. Proposal
+notification identifiers are retained to prevent repeated alerts across retries
+and explicit requeues. Monitor disk usage if a backlog remains unresolved for a
+long time. Pending Discord messages are retained until delivery or terminal failure.
 
 ## Discord webhook
 
@@ -134,7 +189,7 @@ empty optional `secrets/` directory automatically; no secret file is required.
 | Several clients cross together | One grouped fleet notification; shared-cause diagnosis is not assumed |
 | Attestation recovery | Two consecutive checked epochs below 10 per 1,000 |
 | Collection unavailable | One alert after 300 seconds of sustained failure while the collector runs |
-| Collection recovery | One message when collection resumes; historical gaps remain unknown |
+| Collection recovery | One message when recent collection resumes; historical recovery continues separately |
 
 An affected attestation is missing **any** source, target or head credit. Each duty
 counts once in the rate, even when all three flags are absent. With 200 active
@@ -173,12 +228,13 @@ This version supports mainnet timing (32 slots/epoch, 12 seconds/slot) and Deneb
 Electra and Fulu blocks. Unsupported forks, missing duties, malformed bitfields,
 optimistic data, stale finality and incomplete API responses pause analysis.
 
-It follows parent roots from a finalized canonical header to prove skipped slots;
+It selects a canonical header at or below the verified finalized height, close to
+the epoch's inclusion window, then follows parent roots to prove skipped slots;
 a standalone HTTP 404 cannot establish a missed proposal. It reads blinded blocks,
 filtered validator records, committee mappings and duties, combines Electra's
 committee bitfields correctly, and unions credit across valid inclusions. The
 node's canonical consensus validation is trusted; this is not an independent
-consensus verifier. It rechecks the finalized anchor before committing an epoch.
+consensus verifier. It rechecks that canonical anchor before saving proposals and again before committing a complete epoch.
 
 Sync statistics count committee **positions**, including duplicate assignments.
 An absent inclusion block creates unknown positions, not failures blamed on the
@@ -194,13 +250,25 @@ CPU/disk work; a timeout does not cancel server-side work. Test on the fallback 
 observe its load before enabling continuous operation. Polling sleeps 30 seconds
 between cycles. No whole-state or whole-validator-registry downloads are requested.
 
-Coverage is shown separately: checked epochs, skipped epochs and unregistered keys.
+Coverage is shown separately: checked epochs, queued/unknown epochs and unregistered keys.
 Coverage percentages describe attempted epochs in the selected range, not time
 before installation. A stale/unknown collector must not be interpreted as a healthy
 fleet. SQL tables show at most 200 exceptions/rankings per query. Only trusted
 Grafana administrators should have datasource-editing privileges.
 
 ## Compatibility probe
+
+Validator identity and activation/exit epochs are read in batches from a pinned
+recent finalized state before scanning blocks. Activity is evaluated against the
+epoch being checked, including validators that have since exited. Attestations,
+committees and proposal duties still use their historical epoch; historical
+balances are not queried. Inventory keys absent from the finalized registry are
+reported as unknown coverage.
+
+Network failures identify the beacon role (`collection` or `primary_health`),
+endpoint category, method, error type, elapsed request time and request number.
+URLs, pubkeys and request bodies are omitted. A successful compatibility probe
+does not rule out timeouts in historical requests or full inventory batches.
 
 Before live collection, run the bounded diagnostic on the monitoring host:
 

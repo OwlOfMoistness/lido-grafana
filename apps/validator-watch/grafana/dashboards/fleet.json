@@ -23,7 +23,7 @@
           "type": "frser-sqlite-datasource",
           "uid": "validator-watch"
         },
-        "query": "SELECT DISTINCT client FROM summary ORDER BY client",
+        "query": "SELECT client FROM summary UNION SELECT client FROM events ORDER BY client",
         "refresh": 1,
         "multi": true,
         "includeAll": true,
@@ -1591,8 +1591,8 @@
             "type": "frser-sqlite-datasource",
             "uid": "validator-watch"
           },
-          "rawQueryText": "SELECT time,epoch AS Epoch,status AS Coverage,reason AS Reason,unknown_keys AS \"Unregistered keys\" FROM epochs WHERE time >= $__from/1000 AND time <= $__to/1000 ORDER BY epoch DESC LIMIT 100",
-          "queryText": "SELECT time,epoch AS Epoch,status AS Coverage,reason AS Reason,unknown_keys AS \"Unregistered keys\" FROM epochs WHERE time >= $__from/1000 AND time <= $__to/1000 ORDER BY epoch DESC LIMIT 100",
+          "rawQueryText": "SELECT time,epoch AS Epoch,status AS Coverage,reason AS Reason,unknown_keys AS \"Unregistered keys\",CASE WHEN status='checked' OR coalesce((SELECT proposals_checked FROM backlog WHERE backlog.epoch=epochs.epoch),0)=1 THEN 'checked' ELSE 'unknown' END AS Proposals FROM epochs WHERE time >= $__from/1000 AND time <= $__to/1000 ORDER BY epoch DESC LIMIT 100",
+          "queryText": "SELECT time,epoch AS Epoch,status AS Coverage,reason AS Reason,unknown_keys AS \"Unregistered keys\",CASE WHEN status='checked' OR coalesce((SELECT proposals_checked FROM backlog WHERE backlog.epoch=epochs.epoch),0)=1 THEN 'checked' ELSE 'unknown' END AS Proposals FROM epochs WHERE time >= $__from/1000 AND time <= $__to/1000 ORDER BY epoch DESC LIMIT 100",
           "queryType": "table",
           "timeColumns": [
             "time"
@@ -1928,6 +1928,66 @@
             "matcher": {
               "id": "byName",
               "options": "State"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "included": {
+                        "text": "included",
+                        "color": "green"
+                      },
+                      "\u2713": {
+                        "text": "\u2713",
+                        "color": "green"
+                      },
+                      "checked": {
+                        "text": "checked",
+                        "color": "green"
+                      },
+                      "sent": {
+                        "text": "sent",
+                        "color": "green"
+                      },
+                      "missed": {
+                        "text": "missed",
+                        "color": "red"
+                      },
+                      "Miss": {
+                        "text": "Miss",
+                        "color": "red"
+                      },
+                      "failed": {
+                        "text": "failed",
+                        "color": "red"
+                      },
+                      "unknown": {
+                        "text": "unknown",
+                        "color": "yellow"
+                      },
+                      "pending": {
+                        "text": "pending",
+                        "color": "yellow"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Proposals"
             },
             "properties": [
               {
@@ -2419,6 +2479,132 @@
           "show": false
         },
         "sortBy": []
+      }
+    },
+    {
+      "id": 13,
+      "title": "Recovery queue \u00b7 recent epochs take priority",
+      "type": "table",
+      "gridPos": {
+        "x": 0,
+        "y": 29,
+        "w": 24,
+        "h": 6
+      },
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "validator-watch"
+      },
+      "description": "Oldest 100 unresolved epochs, independent of the selected time range. Retry times are earliest eligibility, not appointments; live work and the historical cooldown take priority. Inventory confirmation is required when no historical observation exists. Proposal outcomes may be available while attestations remain unknown.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "validator-watch"
+          },
+          "rawQueryText": "SELECT e.time,b.epoch AS Epoch,\n       CASE WHEN b.ownership IS NULL THEN 'Confirmation needed' ELSE 'Captured' END AS Inventory,\n       CASE WHEN b.proposals_checked=1 THEN 'checked' ELSE 'unknown' END AS Proposals,\n       b.attempts AS Attempts,CASE WHEN b.next_try>0 THEN b.next_try ELSE NULL END AS \"Retry after\",\n       e.reason AS Reason,(SELECT count(*) FROM backlog) AS \"Total queued\"\n       FROM backlog b JOIN epochs e ON e.epoch=b.epoch ORDER BY b.epoch LIMIT 100",
+          "queryText": "SELECT e.time,b.epoch AS Epoch,\n       CASE WHEN b.ownership IS NULL THEN 'Confirmation needed' ELSE 'Captured' END AS Inventory,\n       CASE WHEN b.proposals_checked=1 THEN 'checked' ELSE 'unknown' END AS Proposals,\n       b.attempts AS Attempts,CASE WHEN b.next_try>0 THEN b.next_try ELSE NULL END AS \"Retry after\",\n       e.reason AS Reason,(SELECT count(*) FROM backlog) AS \"Total queued\"\n       FROM backlog b JOIN epochs e ON e.epoch=b.epoch ORDER BY b.epoch LIMIT 100",
+          "queryType": "table",
+          "timeColumns": [
+            "time",
+            "Retry after"
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "\u2014",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "minWidth": 55
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "time"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 170
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Proposals"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "included": {
+                        "text": "included",
+                        "color": "green"
+                      },
+                      "\u2713": {
+                        "text": "\u2713",
+                        "color": "green"
+                      },
+                      "checked": {
+                        "text": "checked",
+                        "color": "green"
+                      },
+                      "sent": {
+                        "text": "sent",
+                        "color": "green"
+                      },
+                      "missed": {
+                        "text": "missed",
+                        "color": "red"
+                      },
+                      "Miss": {
+                        "text": "Miss",
+                        "color": "red"
+                      },
+                      "failed": {
+                        "text": "failed",
+                        "color": "red"
+                      },
+                      "unknown": {
+                        "text": "unknown",
+                        "color": "yellow"
+                      },
+                      "pending": {
+                        "text": "pending",
+                        "color": "yellow"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
       }
     }
   ]
